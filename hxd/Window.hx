@@ -20,6 +20,8 @@ class Window {
 
 	public var title(get, set):String;
 	public var displayMode(get, set):DisplayMode;
+	public var pixelWidth(get, never):Int;
+	public var pixelHeight(get, never):Int;
 
 	function new():Void {
 		eventTargets = new List();
@@ -98,6 +100,14 @@ class Window {
 	}
 
 	function get_height():Int {
+		return 0;
+	}
+
+	function get_pixelWidth():Int {
+		return 0;
+	}
+
+	function get_pixelHeight():Int {
 		return 0;
 	}
 

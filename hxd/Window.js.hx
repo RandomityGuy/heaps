@@ -22,6 +22,8 @@ class Window {
 
 	public var title(get, set):String;
 	public var displayMode(get, set):DisplayMode;
+	public var pixelWidth(get, never):Int;
+	public var pixelHeight(get, never):Int;
 
 	var curMouseX:Float = 0.;
 	var curMouseY:Float = 0.;
@@ -238,6 +240,14 @@ class Window {
 
 	function get_height() {
 		return Math.round(canvasPos.height * getPixelRatio());
+	}
+
+	function get_pixelHeight() {
+		return height;
+	}
+
+	function get_pixelWidth() {
+		return width;
 	}
 
 	function get_mouseX() {

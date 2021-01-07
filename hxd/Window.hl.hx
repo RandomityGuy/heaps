@@ -45,6 +45,9 @@ class Window {
 	public var isFocused(get, never):Bool;
 
 	public var title(get, set):String;
+	public var pixelWidth(get, never):Int;
+	public var pixelHeight(get, never):Int;
+
 	public var displayMode(get, set):DisplayMode;
 	#if (hl_ver >= version("1.12.0"))
 	public var currentMonitorIndex(get, null):Int;
@@ -78,17 +81,16 @@ class Window {
 	public static var USE_VULKAN = false;
 	#end
 	#end
-	function new(title:String, width:Int, height:Int, fixed:Bool = false) {
+	function new(title:String, width:Int, height:Int, fixed:Bool = false, highDPI = false) {
 		this.windowWidth = width;
 		this.windowHeight = height;
 		eventTargets = new List();
 		resizeEvents = new List();
 		#if hlsdl
 		var sdlFlags = if (!fixed) sdl.Window.SDL_WINDOW_SHOWN | sdl.Window.SDL_WINDOW_RESIZABLE else sdl.Window.SDL_WINDOW_SHOWN;
-		#if heaps_vulkan
-		if (USE_VULKAN)
-			sdlFlags |= sdl.Window.SDL_WINDOW_VULKAN;
-		#end
+		if (highDPI) {
+			sdlFlags |= sdl.Window.SDL_WINDOW_ALLOW_HIGHDPI;
+		}
 		window = new sdl.Window(title, width, height, sdl.Window.SDL_WINDOWPOS_CENTERED, sdl.Window.SDL_WINDOWPOS_CENTERED, sdlFlags);
 		this.windowWidth = window.width;
 		this.windowHeight = window.height;
