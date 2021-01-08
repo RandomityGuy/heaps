@@ -44,9 +44,9 @@ class Window {
 	public var vsync(get, set):Bool;
 	public var isFocused(get, never):Bool;
 
-	public var title(get, set):String;
 	public var pixelWidth(get, never):Int;
 	public var pixelHeight(get, never):Int;
+	public var windowToPixelRatio(get, never):Float;
 
 	public var displayMode(get, set):DisplayMode;
 	#if (hl_ver >= version("1.12.0"))
@@ -196,6 +196,18 @@ class Window {
 
 	function get_height():Int {
 		return windowHeight;
+	}
+
+	function get_pixelWidth():Int {
+		return window.pixelWidth;
+	}
+
+	function get_pixelHeight():Int {
+		return window.pixelHeight;
+	}
+
+	function get_windowToPixelRatio():Float {
+		return window.windowToPixelRatio;
 	}
 
 	function get_mouseLock():Bool {

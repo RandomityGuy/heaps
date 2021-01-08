@@ -18,10 +18,9 @@ class Window {
 	public var vsync(get, set):Bool;
 	public var isFocused(get, never):Bool;
 
-	public var title(get, set):String;
-	public var displayMode(get, set):DisplayMode;
 	public var pixelWidth(get, never):Int;
 	public var pixelHeight(get, never):Int;
+	public var windowToPixelRatio(get, never):Float;
 
 	function new():Void {
 		eventTargets = new List();
@@ -103,12 +102,8 @@ class Window {
 		return 0;
 	}
 
-	function get_pixelWidth():Int {
-		return 0;
-	}
-
-	function get_pixelHeight():Int {
-		return 0;
+	function get_windowToPixelRatio():Float {
+		return 0.0;
 	}
 
 	function get_windowLock():Bool {

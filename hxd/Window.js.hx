@@ -20,10 +20,9 @@ class Window {
 	public var isFocused(get, never):Bool;
 	public var propagateKeyEvents:Bool;
 
-	public var title(get, set):String;
-	public var displayMode(get, set):DisplayMode;
 	public var pixelWidth(get, never):Int;
 	public var pixelHeight(get, never):Int;
+	public var windowToPixelRatio(get, never):Float;
 
 	var curMouseX:Float = 0.;
 	var curMouseY:Float = 0.;
@@ -242,12 +241,8 @@ class Window {
 		return Math.round(canvasPos.height * getPixelRatio());
 	}
 
-	function get_pixelHeight() {
-		return height;
-	}
-
-	function get_pixelWidth() {
-		return width;
+	function get_windowToPixelRatio() {
+		return 1.0;
 	}
 
 	function get_mouseX() {
