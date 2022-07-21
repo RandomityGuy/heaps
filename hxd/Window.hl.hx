@@ -67,7 +67,6 @@ class Window {
 		height:Int
 	};
 
-	static var CODEMAP = [for (i in 0...2048) i];
 	static var MIN_HEIGHT = 720;
 	static var MIN_FRAMERATE = 60; // 30 and 60 are always allowed
 

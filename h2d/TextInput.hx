@@ -210,6 +210,9 @@ class TextInput extends Text {
 				}
 			case K.ESCAPE, K.ENTER, K.NUMPAD_ENTER:
 				cursorIndex = -1;
+				#if android
+				textInput(false);
+				#end
 				interactive.blur();
 				return;
 			case K.Z if (K.isDown(modifierKey)):
@@ -481,6 +484,9 @@ class TextInput extends Text {
 		Sets focus on this `TextInput`.
 	**/
 	public function focus() {
+		#if android
+		textInput(true);
+		#end
 		interactive.focus();
 		if (cursorIndex < 0) {
 			cursorIndex = 0;
@@ -571,4 +577,9 @@ class TextInput extends Text {
 
 	function set_backgroundColor(v)
 		return interactive.backgroundColor = v;
+
+	#if android
+	@:hlNative("sdl", "text_input")
+	public static function textInput(enable:Bool):Void {}
+	#end
 }
