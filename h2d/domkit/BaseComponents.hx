@@ -177,21 +177,32 @@ class CustomParser extends CssValue.ValueParser {
 	public function parseFont( value : CssValue ) {
 		var path = null;
 		var sdf = null;
+		var offset = 0;
 		switch(value) {
 			case VGroup(args):
+				var args = args.copy();
 				path = parsePath(args[0]);
-				sdf = {
-					size: parseInt(args[1]),
-					channel: args.length >= 3 ? switch(args[2]) {
-						case VIdent("red"): h2d.Font.SDFChannel.Red;
-						case VIdent("green"): h2d.Font.SDFChannel.Green;
-						case VIdent("blue"): h2d.Font.SDFChannel.Blue;
-						case VIdent("multi"): h2d.Font.SDFChannel.MultiChannel;
-						default: h2d.Font.SDFChannel.Alpha;
-					} : h2d.Font.SDFChannel.Alpha,
-					cutoff: args.length >= 4 ? parseFloat(args[3]) : 0.5,
-					smooth: args.length >= 5 ? parseFloat(args[4]) : 1.0/32.0
-				};
+				switch( args[1] ) {
+				case VCall("offset", [v]):
+					offset = parseInt(v);
+					args.splice(1,1);
+				default:
+				}
+				if( args[1] != null ) {
+					sdf = {
+						size: parseInt(args[1]),
+						channel: args.length >= 3 ? switch(args[2]) {
+							case VIdent("red"): h2d.Font.SDFChannel.Red;
+							case VIdent("green"): h2d.Font.SDFChannel.Green;
+							case VIdent("blue"): h2d.Font.SDFChannel.Blue;
+							case VIdent("multi"): h2d.Font.SDFChannel.MultiChannel;
+							default: h2d.Font.SDFChannel.Alpha;
+						} : h2d.Font.SDFChannel.Alpha,
+						cutoff: args.length >= 4 ? parseFloat(args[3]) : 0.5,
+						smooth: args.length >= 5 ? parseFloat(args[4]) : 1.0/32.0
+					};
+					adjustSdfParams(sdf);
+				}
 			default:
 				path = parsePath(value);
 		}
@@ -199,11 +210,19 @@ class CustomParser extends CssValue.ValueParser {
 		#if macro
 		return res;
 		#else
+		var fnt;
 		if(sdf != null)
-			return res.to(hxd.res.BitmapFont).toSdfFont(sdf.size, sdf.channel, sdf.cutoff, sdf.smooth);
+			fnt = res.to(hxd.res.BitmapFont).toSdfFont(sdf.size, sdf.channel, sdf.cutoff, sdf.smooth);
 		else
-			return res.to(hxd.res.BitmapFont).toFont();
+			fnt = res.to(hxd.res.BitmapFont).toFont();
+		if( offset != 0 )
+			@:privateAccess fnt.baseLine = fnt.calcBaseLine() - offset;
+		return fnt;
 		#end
+	}
+
+	public static dynamic function adjustSdfParams( sdf : { size : Int, channel : h2d.Font.SDFChannel, cutoff : Float, smooth : Float }) {
+
 	}
 
 	public function parseTextShadow( value : CssValue ) {
@@ -693,6 +712,8 @@ class ScaleGridComp extends DrawableComp implements domkit.Component.ComponentDe
 	@:p var ignoreScale : Bool;
 	@:p var borderScale : Float;
 	@:p var tileBorders : Bool;
+	@:p var width : Float;
+	@:p var height : Float;
 
 	static function create( parent : h2d.Object ) {
 		return new h2d.ScaleGrid(h2d.Tile.fromColor(0xFF00FF,32,32,0.9), 0, 0,parent);
@@ -708,6 +729,14 @@ class ScaleGridComp extends DrawableComp implements domkit.Component.ComponentDe
 
 	static function set_tileBorders(o : h2d.ScaleGrid, v) {
 		o.tileBorders = v;
+	}
+
+	static function set_width( o : h2d.ScaleGrid, v : Float ) {
+		o.width = v;
+	}
+
+	static function set_height( o : h2d.ScaleGrid, v : Float ) {
+		o.height = v;
 	}
 
 }
@@ -744,6 +773,7 @@ class FlowComp extends ObjectComp implements domkit.Component.ComponentDecl<h2d.
 	@:p var fillWidth: Bool;
 	@:p var fillHeight: Bool;
 	@:p var overflow: h2d.Flow.FlowOverflow;
+	@:p var scrollWheelSpeed: Float;
 	@:p var reverse : Bool;
 
 	@:p(align) var contentAlign : { h : h2d.Flow.FlowAlign, v : h2d.Flow.FlowAlign };
@@ -919,6 +949,10 @@ class FlowComp extends ObjectComp implements domkit.Component.ComponentDecl<h2d.
 				o.scrollBarCursor.dom.addClass("cursor");
 			}
 		}
+	}
+
+	static function set_scrollWheelSpeed( o : h2d.Flow, v ) {
+		o.scrollWheelSpeed = v;
 	}
 
 	static function set_reverse( o : h2d.Flow, v ) {

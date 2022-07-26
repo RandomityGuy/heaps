@@ -158,10 +158,9 @@ class System {
 				if( !mainLoop() ) break;
 			} catch( e : Dynamic ) {
 				hl.Api.setErrorHandler(null);
-				reportError(e);
 			}
 			#if hot_reload
-			check_reload();
+			if( check_reload() ) onReload();
 			#end
 		}
 		Sys.exit(0);
@@ -169,8 +168,14 @@ class System {
 
 	#if hot_reload
 	@:hlNative("std","sys_check_reload")
-	static function check_reload() return false;
+	static function check_reload( ?debug : hl.Bytes ) return false;
 	#end
+
+	/**
+		onReload() is called when app hot reload is enabled with -D hot-reload and is also enabled when running hashlink.
+		The later can be done by running `hl --hot-reload` or by setting hotReload:true in VSCode launch props.
+	**/
+	public dynamic static function onReload() {}
 
 	public dynamic static function reportError( e : Dynamic ) {
 		#if (haxe_ver >= 4.1)
@@ -184,7 +189,7 @@ class System {
 		#if usesys
 		haxe.System.reportError(err + stack);
 		#else
-		try Sys.stderr().writeString(err + stack + "\n") catch( e : Dynamic ) {};
+		try Sys.stderr().writeString( err + stack + "\r\n" ) catch( e : Dynamic ) {};
 
 		if ( Sys.systemName() != 'Windows' )
 			return;
@@ -315,6 +320,8 @@ class System {
 		return haxe.System.name;
 		#elseif hlsdl
 		return "PC/" + sdl.Sdl.getDevices()[0];
+		#elseif (hldx && dx12)
+		return "PC/" + dx.Dx12.getDeviceName();
 		#elseif hldx
 		return "PC/" + dx.Driver.getDeviceName();
 		#else

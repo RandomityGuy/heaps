@@ -437,6 +437,9 @@ class Pixels {
 			return switchBR(bytes.getInt32(p));
 		case ARGB:
 			return switchEndian(bytes.getInt32(p));
+		case RG8:
+			var b = bytes.getUInt16(p);
+			return ((b & 0xff) << 8) | (b >> 8);
 		default:
 			invalidFormat();
 			return 0;
@@ -455,6 +458,8 @@ class Pixels {
 			bytes.setInt32(p, switchBR(color));
 		case ARGB:
 			bytes.setInt32(p, switchEndian(color));
+		case RG8:
+			bytes.setUInt16(p, ((color & 0xff) << 8) | ((color & 0xff00) >> 8));
 		default:
 			invalidFormat();
 		}
@@ -625,7 +630,7 @@ class Pixels {
 		var levels : Array<Array<Pixels>> = [];
 		var outSize = 0;
 		for( p in pixels ) {
-			if( p.format != fmt ) throw "All images must be of the same pixel format";
+			if( !p.format.equals(fmt) ) throw "All images must be of the same pixel format";
 			outSize += p.dataSize;
 			var found = false;
 			for( sz in levels ) {
@@ -722,6 +727,13 @@ class Pixels {
 			switch( fmt ) {
 			case RGBA:
 				write(28); // DXGI_FORMAT_R8G8B8A8_UNORM
+			case S3TC(n):
+				write(switch( n ) {
+				case 1: 71;
+				case 2: 74;
+				case 3: 77;
+				default: throw "Unnsupported format "+fmt;
+				});
 			default:
 				throw "Unsupported DXT10 format "+fmt;
 			}

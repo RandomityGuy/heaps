@@ -99,9 +99,10 @@ class LocalEntry extends FileEntry {
 	}
 
 	var watchCallback : Void -> Void;
-	#if (hl && (hl_ver >= version("1.12.0")))
+	#if (hl && (hl_ver >= version("1.12.0")) && !usesys)
 	var watchHandle : hl.uv.Fs;
 	var lastChanged : Float = 0;
+	var onChangedDelay : haxe.Timer;
 	#else
 	var watchTime : Float;
 	#end
@@ -167,7 +168,7 @@ class LocalEntry extends FileEntry {
 			if( watchCallback != null ) {
 				WATCH_LIST.remove(this);
 				watchCallback = null;
-				#if (hl && (hl_ver >= version("1.12.0")))
+				#if (hl && (hl_ver >= version("1.12.0")) && !usesys)
 				watchHandle.close();
 				watchHandle = null;
 				#end
@@ -184,7 +185,7 @@ class LocalEntry extends FileEntry {
 			var path = path;
 			for( w in WATCH_LIST )
 				if( w.path == path ) {
-					#if (hl && (hl_ver >= version("1.12.0")))
+					#if (hl && (hl_ver >= version("1.12.0")) && !usesys)
 					if(w.watchHandle != null) {
 						w.watchHandle.close();
 						w.watchHandle = null;
@@ -195,15 +196,23 @@ class LocalEntry extends FileEntry {
 				}
 			WATCH_LIST.push(this);
 		}
-		#if (hl && (hl_ver >= version("1.12.0")))
+		#if (hl && (hl_ver >= version("1.12.0")) && !usesys)
+		if(watchHandle != null)
+			watchHandle.close();
+		lastChanged = getModifTime();
 		watchHandle = new hl.uv.Fs(originalFile, function(ev) {
 			switch(ev) {
 				case Change:
-					// For any reason, uvfs send 2 events for a single change
-					if(Sys.time() - lastChanged > 0.1 ) {
-						lastChanged = Sys.time();
-						haxe.Timer.delay(onChanged, 100);
+					if(getModifTime() != lastChanged) {
+						lastChanged = getModifTime();
+						if(onChangedDelay != null)
+							onChangedDelay.stop();
+						onChangedDelay = haxe.Timer.delay(function() {
+							fs.convert.run(this);
+							onChanged();
+						}, 10);
 					}
+
 				case Rename:
 			}
 		});
