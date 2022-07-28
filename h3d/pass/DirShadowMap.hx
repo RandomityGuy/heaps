@@ -190,6 +190,11 @@ class DirShadowMap extends Shadows {
 
 	override function setGlobals() {
 		super.setGlobals();
+		if( mode != Mixed || ctx.computingStatic ) {
+			lightCamera.orthoBounds.empty();
+			calcShadowBounds(lightCamera);
+			lightCamera.update();
+		}
 		cameraViewProj = getShadowProj();
 	}
 
@@ -273,12 +278,6 @@ class DirShadowMap extends Shadows {
 
 		if( !filterPasses(passes) )
 			return;
-
-		if( mode != Mixed || ctx.computingStatic ) {
-			lightCamera.orthoBounds.empty();
-			if( !passes.isEmpty() ) calcShadowBounds(lightCamera);
-			lightCamera.update();
-		}
 
 		cullPasses(passes,function(col) return col.inFrustum(lightCamera.frustum));
 
