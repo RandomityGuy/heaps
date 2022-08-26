@@ -286,8 +286,10 @@ class TextInput extends Text {
 				return;
 
 			if (selectionRange == null)
-				selectionRange = oldIndex < cursorIndex ? {start: oldIndex, length: cursorIndex - oldIndex} : {start: cursorIndex, length: oldIndex
-					- cursorIndex};
+				selectionRange = oldIndex < cursorIndex ? {start: oldIndex, length: cursorIndex - oldIndex} : {
+					start: cursorIndex,
+					length: oldIndex - cursorIndex
+				};
 			else if (oldIndex == selectionRange.start) {
 				selectionRange.length += oldIndex - cursorIndex;
 				selectionRange.start = cursorIndex;

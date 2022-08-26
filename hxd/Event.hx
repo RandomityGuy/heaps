@@ -37,6 +37,9 @@ class Event {
 	public var touchId : Int;
 	public var keyCode : Int;
 	public var charCode : Int;
+	#if mac
+	public var inputChar : String;
+	#end
 	public var wheelDelta : Float;
 
 	public function new(k,x=0.,y=0.) {
