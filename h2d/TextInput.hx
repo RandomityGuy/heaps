@@ -1,7 +1,8 @@
 package h2d;
+
 import hxd.Key in K;
 
-private typedef TextHistoryElement = { t : String, c : Int, sel : { start : Int, length : Int } };
+private typedef TextHistoryElement = {t:String, c:Int, sel:{start:Int, length:Int}};
 
 /**
 	A skinnable text input handler.
@@ -9,30 +10,40 @@ private typedef TextHistoryElement = { t : String, c : Int, sel : { start : Int,
 	Supports text selection, keyboard cursor navigation, as well as basic hotkeys: `Ctrl + Z`, `Ctrl + Y` for undo and redo and `Ctrl + A` to select all text.
 **/
 class TextInput extends Text {
+	#if sys
+	public static final modifierKey:Int = Sys.systemName() == "Mac" ? K.LEFT_WINDOW_KEY : K.CTRL;
+	#else
+	public static final modifierKey:Int = K.CTRL;
+	#end
 
 	/**
 		Current position of the input cursor.
 		When TextInput is not focused value is -1.
 	**/
-	public var cursorIndex : Int = -1;
+	public var cursorIndex:Int = -1;
+
 	/**
 		The Tile used to render the input cursor.
 	**/
-	public var cursorTile : h2d.Tile;
+	public var cursorTile:h2d.Tile;
+
 	/**
 		The Tile used to render the background for selected text.
 		When rendering, this Tile is stretched horizontally to fill entire selection area.
 	**/
-	public var selectionTile : h2d.Tile;
+	public var selectionTile:h2d.Tile;
+
 	/**
 		The blinking interval of the cursor in seconds.
 	**/
 	public var cursorBlinkTime = 0.5;
+
 	/**
 		Maximum input width.
 		Contrary to `Text.maxWidth` does not cause a word-wrap, but also masks out contents that are outside the max width.
 	**/
-	public var inputWidth : Null<Int>;
+	public var inputWidth:Null<Int>;
+
 	/**
 		When disabled, user would not be able to edit the input text (selection is still available).
 	**/
@@ -41,19 +52,19 @@ class TextInput extends Text {
 	/**
 		If set, TextInput will render provided color as a background to text interactive area.
 	**/
-	public var backgroundColor(get, set) : Null<Int>;
+	public var backgroundColor(get, set):Null<Int>;
 
-	var interactive : h2d.Interactive;
-	var cursorText : String;
-	var cursorX : Float;
-	var cursorXIndex : Int;
+	var interactive:h2d.Interactive;
+	var cursorText:String;
+	var cursorX:Float;
+	var cursorXIndex:Int;
 	var cursorBlink = 0.;
 	var cursorScroll = 0;
 	var scrollX = 0.;
-	var selectionPos : Float;
-	var selectionSize : Float;
-	var undo : Array<TextHistoryElement> = [];
-	var redo : Array<TextHistoryElement> = [];
+	var selectionPos:Float;
+	var selectionSize:Float;
+	var undo:Array<TextHistoryElement> = [];
+	var redo:Array<TextHistoryElement> = [];
 	var lastChange = 0.;
 	var lastClick = 0.;
 	var maxHistorySize = 100;
@@ -69,12 +80,13 @@ class TextInput extends Text {
 		interactive.cursor = TextInput;
 		interactive.onPush = function(e:hxd.Event) {
 			onPush(e);
-			if( !e.cancel && e.button == 0 ) {
-				if( !interactive.hasFocus() ) {
+			if (!e.cancel && e.button == 0) {
+				if (!interactive.hasFocus()) {
 					e.kind = EFocus;
 					onFocus(e);
 					e.kind = EPush;
-					if( e.cancel ) return;
+					if (e.cancel)
+						return;
 					interactive.focus();
 				}
 				cursorBlink = 0;
@@ -85,22 +97,23 @@ class TextInput extends Text {
 
 				var pt = new h2d.col.Point();
 				var scene = getScene();
-				if( scene == null ) return; // was removed
+				if (scene == null)
+					return; // was removed
 				scene.startCapture(function(e) {
 					pt.x = e.relX;
 					pt.y = e.relY;
 					globalToLocal(pt);
 					var index = textPos(pt.x, pt.y);
-					if( index == startIndex )
+					if (index == startIndex)
 						selectionRange = null;
-					else if( index < startIndex )
-						selectionRange = { start : index, length : startIndex - index };
+					else if (index < startIndex)
+						selectionRange = {start: index, length: startIndex - index};
 					else
-						selectionRange = { start : startIndex, length : index - startIndex };
+						selectionRange = {start: startIndex, length: index - startIndex};
 					this.needsRebuild = true;
 					selectionSize = 0;
 					cursorIndex = index;
-					if( e.kind == ERelease || getScene() != scene )
+					if (e.kind == ERelease || getScene() != scene)
 						scene.stopCapture();
 				});
 			}
@@ -122,11 +135,12 @@ class TextInput extends Text {
 
 		interactive.onClick = function(e) {
 			onClick(e);
-			if( e.cancel ) return;
+			if (e.cancel)
+				return;
 			var t = haxe.Timer.stamp();
 			// double click to select all
-			if( t - lastClick < 0.3 && text.length != 0 ) {
-				selectionRange = { start : 0, length : text.length };
+			if (t - lastClick < 0.3 && text.length != 0) {
+				selectionRange = {start: 0, length: text.length};
 				this.needsRebuild = true;
 				selectionSize = 0;
 				cursorIndex = text.length;
@@ -151,147 +165,149 @@ class TextInput extends Text {
 		// disable (don't allow multiline textinput for now)
 	}
 
-	function handleKey( e : hxd.Event ) {
-		if( e.cancel || cursorIndex < 0 )
+	function handleKey(e:hxd.Event) {
+		if (e.cancel || cursorIndex < 0)
 			return;
 
 		var oldIndex = cursorIndex;
 		var oldText = text;
 
-		switch( e.keyCode ) {
-		case K.LEFT if (K.isDown(K.CTRL)):
-			cursorIndex = getWordStart();
-		case K.LEFT:
-			if( cursorIndex > 0 )
-				cursorIndex--;
-		case K.RIGHT if (K.isDown(K.CTRL)):
-			cursorIndex = getWordEnd();
-		case K.RIGHT:
-			if( cursorIndex < text.length )
-				cursorIndex++;
-		case K.HOME:
-			cursorIndex = 0;
-		case K.END:
-			cursorIndex = text.length;
-		case K.BACKSPACE, K.DELETE if( selectionRange != null ):
-			if( !canEdit ) return;
-			beforeChange();
-			cutSelection();
-			onChange();
-		case K.DELETE:
-			if( cursorIndex < text.length && canEdit ) {
-				beforeChange();
-				var end = K.isDown(K.CTRL) ? getWordEnd() : cursorIndex + 1;
-				text = text.substr(0, cursorIndex) + text.substr(end);
-				onChange();
-			}
-		case K.BACKSPACE:
-			if( cursorIndex > 0 && canEdit ) {
-				beforeChange();
-				var end = cursorIndex;
-				cursorIndex = K.isDown(K.CTRL) ? getWordStart() : cursorIndex - 1;
-				text = text.substr(0, cursorIndex) + text.substr(end);
-				onChange();
-			}
-		case K.ESCAPE, K.ENTER, K.NUMPAD_ENTER:
-			cursorIndex = -1;
-			interactive.blur();
-			return;
-		case K.Z if( K.isDown(K.CTRL) ):
-			if( undo.length > 0 && canEdit ) {
-				redo.push(curHistoryState());
-				setState(undo.pop());
-				onChange();
-			}
-			return;
-		case K.Y if( K.isDown(K.CTRL) ):
-			if( redo.length > 0 && canEdit ) {
-				undo.push(curHistoryState());
-				setState(redo.pop());
-				onChange();
-			}
-			return;
-		case K.A if (K.isDown(K.CTRL)):
-			if (text != "") {
+		switch (e.keyCode) {
+			case K.LEFT if (K.isDown(modifierKey)):
+				cursorIndex = getWordStart();
+			case K.LEFT:
+				if (cursorIndex > 0)
+					cursorIndex--;
+			case K.RIGHT if (K.isDown(modifierKey)):
+				cursorIndex = getWordEnd();
+			case K.RIGHT:
+				if (cursorIndex < text.length)
+					cursorIndex++;
+			case K.HOME:
+				cursorIndex = 0;
+			case K.END:
 				cursorIndex = text.length;
-				selectionRange = {start: 0, length: text.length};
-					this.needsRebuild = true;
-				selectionSize = 0;
-			}
-			return;
-		case K.C if (K.isDown(K.CTRL)):
-			if( text != "" && selectionRange != null ) {
-				hxd.System.setClipboardText(text.substr(selectionRange.start, selectionRange.length));
-			}
-		case K.X if (K.isDown(K.CTRL)):
-			if( text != "" && selectionRange != null ) {
-				if(hxd.System.setClipboardText(text.substr(selectionRange.start, selectionRange.length))) {
-					if( !canEdit ) return;
+			case K.BACKSPACE, K.DELETE if (selectionRange != null):
+				if (!canEdit)
+					return;
+				beforeChange();
+				cutSelection();
+				onChange();
+			case K.DELETE:
+				if (cursorIndex < text.length && canEdit) {
 					beforeChange();
-					cutSelection();
+					var end = K.isDown(K.CTRL) ? getWordEnd() : cursorIndex + 1;
+					text = text.substr(0, cursorIndex) + text.substr(end);
 					onChange();
 				}
-			}
-		case K.V if (K.isDown(K.CTRL)):
-			if( !canEdit ) return;
-			var t = hxd.System.getClipboardText();
-			if( t != null && t.length > 0 ) {
-				beforeChange();
-				if( selectionRange != null )
-					cutSelection();
-				text = text.substr(0, cursorIndex) + t + text.substr(cursorIndex);
-				cursorIndex += t.length;
-				onChange();
-			}
-		default:
-			if( e.kind == EKeyDown )
+			case K.BACKSPACE:
+				if (cursorIndex > 0 && canEdit) {
+					beforeChange();
+					var end = cursorIndex;
+					cursorIndex = K.isDown(K.CTRL) ? getWordStart() : cursorIndex - 1;
+					text = text.substr(0, cursorIndex) + text.substr(end);
+					onChange();
+				}
+			case K.ESCAPE, K.ENTER, K.NUMPAD_ENTER:
+				cursorIndex = -1;
+				interactive.blur();
 				return;
-			if( e.charCode != 0 && canEdit ) {
+			case K.Z if (K.isDown(modifierKey)):
+				if (undo.length > 0 && canEdit) {
+					redo.push(curHistoryState());
+					setState(undo.pop());
+					onChange();
+				}
+				return;
+			case K.Y if (K.isDown(modifierKey)):
+				if (redo.length > 0 && canEdit) {
+					undo.push(curHistoryState());
+					setState(redo.pop());
+					onChange();
+				}
+				return;
+			case K.A if (K.isDown(modifierKey)):
+				if (text != "") {
+					cursorIndex = text.length;
+					selectionRange = {start: 0, length: text.length};
+					this.needsRebuild = true;
+					selectionSize = 0;
+				}
+				return;
+			case K.C if (K.isDown(modifierKey)):
+				if (text != "" && selectionRange != null) {
+					hxd.System.setClipboardText(text.substr(selectionRange.start, selectionRange.length));
+				}
+			case K.X if (K.isDown(modifierKey)):
+				if (text != "" && selectionRange != null) {
+					if (hxd.System.setClipboardText(text.substr(selectionRange.start, selectionRange.length))) {
+						if (!canEdit)
+							return;
+						beforeChange();
+						cutSelection();
+						onChange();
+					}
+				}
+			case K.V if (K.isDown(modifierKey)):
+				if (!canEdit)
+					return;
+				var t = hxd.System.getClipboardText();
+				if (t != null && t.length > 0) {
+					beforeChange();
+					if (selectionRange != null)
+						cutSelection();
+					text = text.substr(0, cursorIndex) + t + text.substr(cursorIndex);
+					cursorIndex += t.length;
+					onChange();
+				}
+			default:
+				if (e.kind == EKeyDown)
+					return;
+				if (e.charCode != 0 && canEdit) {
+					if (!font.hasChar(e.charCode))
+						return; // don't allow chars not supported by font
 
-				if( !font.hasChar(e.charCode) ) return; // don't allow chars not supported by font
-
-				beforeChange();
-				if( selectionRange != null )
-					cutSelection();
-				text = text.substr(0, cursorIndex) + String.fromCharCode(e.charCode) + text.substr(cursorIndex);
-				cursorIndex++;
-				onChange();
-			}
+					beforeChange();
+					if (selectionRange != null)
+						cutSelection();
+					text = text.substr(0, cursorIndex) + String.fromCharCode(e.charCode) + text.substr(cursorIndex);
+					cursorIndex++;
+					onChange();
+				}
 		}
 
 		cursorBlink = 0.;
 
-		if( K.isDown(K.SHIFT) && text == oldText ) {
+		if (K.isDown(K.SHIFT) && text == oldText) {
+			if (cursorIndex == oldIndex)
+				return;
 
-			if( cursorIndex == oldIndex ) return;
-
-			if( selectionRange == null )
-				selectionRange = oldIndex < cursorIndex ? { start : oldIndex, length : cursorIndex - oldIndex } : { start : cursorIndex, length : oldIndex - cursorIndex };
-			else if( oldIndex == selectionRange.start ) {
+			if (selectionRange == null)
+				selectionRange = oldIndex < cursorIndex ? {start: oldIndex, length: cursorIndex - oldIndex} : {start: cursorIndex, length: oldIndex
+					- cursorIndex};
+			else if (oldIndex == selectionRange.start) {
 				selectionRange.length += oldIndex - cursorIndex;
 				selectionRange.start = cursorIndex;
 			} else
 				selectionRange.length += cursorIndex - oldIndex;
 
-			if( selectionRange.length == 0 ) {
+			if (selectionRange.length == 0) {
 				selectionRange = null;
 				this.needsRebuild = true;
-			}
-			else if( selectionRange.length < 0 ) {
+			} else if (selectionRange.length < 0) {
 				selectionRange.start += selectionRange.length;
 				selectionRange.length = -selectionRange.length;
 			}
 			selectionSize = 0;
-
 		} else {
 			selectionRange = null;
 			this.needsRebuild = true;
 		}
-
 	}
 
 	function cutSelection() {
-		if(selectionRange == null) return false;
+		if (selectionRange == null)
+			return false;
 		cursorIndex = selectionRange.start;
 		var end = cursorIndex + selectionRange.length;
 		text = text.substr(0, cursorIndex) + text.substr(end);
@@ -307,18 +323,23 @@ class TextInput extends Text {
 		}
 		var charset = hxd.Charset.getDefault();
 		var ret = cursorIndex;
-		while (ret < len && charset.isSpace(StringTools.fastCodeAt(text, ret))) ret++;
-		while (ret < len && !charset.isSpace(StringTools.fastCodeAt(text, ret))) ret++;
+		while (ret < len && charset.isSpace(StringTools.fastCodeAt(text, ret)))
+			ret++;
+		while (ret < len && !charset.isSpace(StringTools.fastCodeAt(text, ret)))
+			ret++;
 		return ret;
 	}
+
 	function getWordStart() {
 		if (cursorIndex <= 0) {
 			return cursorIndex;
 		}
 		var charset = hxd.Charset.getDefault();
 		var ret = cursorIndex;
-		while (ret > 0 && charset.isSpace(StringTools.fastCodeAt(text, ret - 1))) ret--;
-		while (ret > 0 && !charset.isSpace(StringTools.fastCodeAt(text, ret - 1))) ret--;
+		while (ret > 0 && charset.isSpace(StringTools.fastCodeAt(text, ret - 1)))
+			ret--;
+		while (ret > 0 && !charset.isSpace(StringTools.fastCodeAt(text, ret - 1)))
+			ret--;
 		return ret;
 	}
 
@@ -327,36 +348,38 @@ class TextInput extends Text {
 		cursorIndex = h.c;
 		selectionRange = h.sel;
 		this.needsRebuild = true;
-		if( selectionRange != null )
+		if (selectionRange != null)
 			cursorIndex = selectionRange.start + selectionRange.length;
 	}
 
-	function curHistoryState() : TextHistoryElement {
-		return { t : text, c : cursorIndex, sel : selectionRange == null ? null : { start : selectionRange.start, length : selectionRange.length } };
+	function curHistoryState():TextHistoryElement {
+		return {t: text, c: cursorIndex, sel: selectionRange == null ? null : {start: selectionRange.start, length: selectionRange.length}};
 	}
 
 	function beforeChange() {
 		var t = haxe.Timer.stamp();
-		if( t - lastChange < 1 ) {
+		if (t - lastChange < 1) {
 			lastChange = t;
 			return;
 		}
 		lastChange = t;
 		undo.push(curHistoryState());
 		redo = [];
-		while( undo.length > maxHistorySize ) undo.shift();
+		while (undo.length > maxHistorySize)
+			undo.shift();
 	}
 
 	/**
 		Returns a String representing currently selected text area or `null` if no text is selected.
 	**/
-	public function getSelectedText() : String {
+	public function getSelectedText():String {
 		return selectionRange == null ? null : text.substr(selectionRange.start, selectionRange.length);
 	}
 
 	override function set_text(t:String) {
 		super.set_text(t);
-		if( cursorIndex > t.length ) cursorIndex = t.length;
+		if (cursorIndex > t.length)
+			cursorIndex = t.length;
 		return t;
 	}
 
@@ -370,17 +393,18 @@ class TextInput extends Text {
 
 	override function initGlyphs(text:String, rebuild = true):Void {
 		super.initGlyphs(text, rebuild);
-		if( rebuild ) {
+		if (rebuild) {
 			this.calcWidth += cursorTile.width; // cursor end pos
-			if( inputWidth != null && this.calcWidth > inputWidth ) this.calcWidth = inputWidth;
+			if (inputWidth != null && this.calcWidth > inputWidth)
+				this.calcWidth = inputWidth;
 		}
 	}
 
-	function textPos( x : Float, y : Float ) {
+	function textPos(x:Float, y:Float) {
 		x += scrollX;
 		var pos = 0;
-		while( pos < text.length ) {
-			if( calcTextWidth(text.substr(0,pos+1)) > x )
+		while (pos < text.length) {
+			if (calcTextWidth(text.substr(0, pos + 1)) > x)
 				break;
 			pos++;
 		}
@@ -394,32 +418,34 @@ class TextInput extends Text {
 	}
 
 	override function draw(ctx:RenderContext) {
-		if( inputWidth != null ) {
+		if (inputWidth != null) {
 			var h = localToGlobal(new h2d.col.Point(inputWidth, font.lineHeight));
 			ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
 		}
 
-		if( cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex) ) {
-			if( cursorIndex > text.length ) cursorIndex = text.length;
+		if (cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex)) {
+			if (cursorIndex > text.length)
+				cursorIndex = text.length;
 			cursorText = text;
 			cursorXIndex = cursorIndex;
 			cursorX = calcTextWidth(text.substr(0, cursorIndex));
-			if( inputWidth != null && cursorX - scrollX >= inputWidth )
+			if (inputWidth != null && cursorX - scrollX >= inputWidth)
 				scrollX = cursorX - inputWidth + 1;
-			else if( cursorX < scrollX && cursorIndex > 0 )
+			else if (cursorX < scrollX && cursorIndex > 0)
 				scrollX = cursorX - hxd.Math.imin(inputWidth, Std.int(cursorX));
-			else if( cursorX < scrollX )
+			else if (cursorX < scrollX)
 				scrollX = cursorX;
 		}
 
 		absX -= scrollX * matA;
 		absY -= scrollX * matC;
 
-		if( selectionRange != null ) {
-			if( selectionSize == 0 ) {
+		if (selectionRange != null) {
+			if (selectionSize == 0) {
 				selectionPos = calcTextWidth(text.substr(0, selectionRange.start));
 				selectionSize = calcTextWidth(text.substr(selectionRange.start, selectionRange.length));
-				if( selectionRange.start + selectionRange.length == text.length ) selectionSize += cursorTile.width; // last pixel
+				if (selectionRange.start + selectionRange.length == text.length)
+					selectionSize += cursorTile.width; // last pixel
 			}
 			selectionTile.dx += selectionPos;
 			selectionTile.width += selectionSize;
@@ -438,16 +464,16 @@ class TextInput extends Text {
 		absX += scrollX * matA;
 		absY += scrollX * matC;
 
-		if( cursorIndex >= 0 ) {
+		if (cursorIndex >= 0) {
 			cursorBlink += ctx.elapsedTime;
-			if( cursorBlink % (cursorBlinkTime * 2) < cursorBlinkTime ) {
+			if (cursorBlink % (cursorBlinkTime * 2) < cursorBlinkTime) {
 				cursorTile.dx += cursorX - scrollX;
 				emitTile(ctx, cursorTile);
 				cursorTile.dx -= cursorX - scrollX;
 			}
 		}
 
-		if( inputWidth != null )
+		if (inputWidth != null)
 			ctx.popRenderZone();
 	}
 
@@ -456,10 +482,10 @@ class TextInput extends Text {
 	**/
 	public function focus() {
 		interactive.focus();
-		if( cursorIndex < 0 ) {
+		if (cursorIndex < 0) {
 			cursorIndex = 0;
-			if( text != "" ) { 
-				selectionRange = { start : 0, length : text.length };
+			if (text != "") {
+				selectionRange = {start: 0, length: text.length};
 				this.needsRebuild = true;
 			}
 		}
@@ -475,74 +501,62 @@ class TextInput extends Text {
 	/**
 		Delegate of underlying `Interactive.onOut`.
 	**/
-	public dynamic function onOut(e:hxd.Event) {
-	}
+	public dynamic function onOut(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onOver`.
 	**/
-	public dynamic function onOver(e:hxd.Event) {
-	}
+	public dynamic function onOver(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onMove`.
 	**/
-	public dynamic function onMove(e:hxd.Event) {
-	}
+	public dynamic function onMove(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onClick`.
 	**/
-	public dynamic function onClick(e:hxd.Event) {
-	}
+	public dynamic function onClick(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onPush`.
 	**/
-	public dynamic function onPush(e:hxd.Event) {
-	}
+	public dynamic function onPush(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onRelease`.
 	**/
-	public dynamic function onRelease(e:hxd.Event) {
-	}
+	public dynamic function onRelease(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onKeyDown`.
 	**/
-	public dynamic function onKeyDown(e:hxd.Event) {
-	}
+	public dynamic function onKeyDown(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onKeyUp`.
 	**/
-	public dynamic function onKeyUp(e:hxd.Event) {
-	}
+	public dynamic function onKeyUp(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onTextInput`.
 	**/
-	public dynamic function onTextInput(e:hxd.Event) {
-	}
+	public dynamic function onTextInput(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onFocus`.
 	**/
-	public dynamic function onFocus(e:hxd.Event) {
-	}
+	public dynamic function onFocus(e:hxd.Event) {}
 
 	/**
 		Delegate of underlying `Interactive.onFocusLost`.
 	**/
-	public dynamic function onFocusLost(e:hxd.Event) {
-	}
+	public dynamic function onFocusLost(e:hxd.Event) {}
 
 	/**
 		Sent when user modifies TextInput contents.
 	**/
-	public dynamic function onChange() {
-	}
+	public dynamic function onChange() {}
 
 	override function drawRec(ctx:RenderContext) {
 		var old = interactive.visible;
@@ -552,7 +566,9 @@ class TextInput extends Text {
 		interactive.visible = old;
 	}
 
-	function get_backgroundColor() return interactive.backgroundColor;
-	function set_backgroundColor(v) return interactive.backgroundColor = v;
+	function get_backgroundColor()
+		return interactive.backgroundColor;
 
+	function set_backgroundColor(v)
+		return interactive.backgroundColor = v;
 }
