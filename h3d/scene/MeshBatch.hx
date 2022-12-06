@@ -272,9 +272,9 @@ class MeshBatch extends MultiMaterial {
 		if( worldPosition == null ) syncPos();
 		var ps = primitiveSubPart;
 		if( ps != null ) @:privateAccess {
-			instanced.tmpBounds.load(primitiveSubPart.bounds);
-			instanced.tmpBounds.transform(worldPosition == null ? absPos : worldPosition);
-			instanced.bounds.add(instanced.tmpBounds);
+			// instanced.tmpBounds.load(primitiveSubPart.bounds);
+			// instanced.tmpBounds.transform(worldPosition == null ? absPos : worldPosition);
+			// instanced.bounds.add(instanced.tmpBounds);
 
 			if( primitiveSubBytes == null ) {
 				primitiveSubBytes = haxe.io.Bytes.alloc(128);

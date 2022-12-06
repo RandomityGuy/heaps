@@ -187,6 +187,10 @@ class Particles extends h3d.scene.Mesh {
 				if( f == null ) f = frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
 
+				if (pos >= tmp.length) {
+					tmp.grow(tmp.length + 40 + (hasColor ? 16 : 0));
+				}
+
 				// pos
 				tmp[pos++] = prevX1;
 				tmp[pos++] = prevY1;
@@ -288,6 +292,11 @@ class Particles extends h3d.scene.Mesh {
 				var f = frames[p.frame];
 				if( f == null ) f = frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
+
+				if (pos >= tmp.length) {
+					tmp.grow(tmp.length + 40 + (hasColor ? 16 : 0));
+				}
+
 				tmp[pos++] = p.x;
 				tmp[pos++] = p.y;
 				tmp[pos++] = p.z;

@@ -73,7 +73,7 @@ class Window {
 	var lockCallback:Float->Float->Void;
 
 	#if hlsdl
-	static inline var TOUCH_SCALE = #if (hl_ver >= version("1.12.0")) 10000 #else 100 #end;
+	static inline var TOUCH_SCALE = #if (hl_ver >= version("1.12.0")) 10000 #else 10000 #end;
 	#if heaps_vulkan
 	public static var USE_VULKAN = false;
 	#end
@@ -325,24 +325,30 @@ class Window {
 					((c & 0x0F) << 18) | (((e.keyCode >> 8) & 0x7F) << 12) | (((e.keyCode >> 16) & 0x7F) << 6) | ((e.keyCode >> 24) & 0x7F);
 			case TouchDown if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				e.mouseX = Std.int(windowWidth * e.mouseX / TOUCH_SCALE);
-				e.mouseY = Std.int(windowHeight * e.mouseY / TOUCH_SCALE);
+				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
+				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				e.mouseX = Std.int(emx);
+				e.mouseY = Std.int(emy);
 				#end
-				eh = new Event(EPush, e.mouseX, e.mouseY);
+				eh = new Event(EPush, emx, emy);
 				eh.touchId = e.fingerId;
 			case TouchMove if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				e.mouseX = Std.int(windowWidth * e.mouseX / TOUCH_SCALE);
-				e.mouseY = Std.int(windowHeight * e.mouseY / TOUCH_SCALE);
+				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
+				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				e.mouseX = Std.int(emx);
+				e.mouseY = Std.int(emy);
 				#end
-				eh = new Event(EMove, e.mouseX, e.mouseY);
+				eh = new Event(EMove, emx, emy);
 				eh.touchId = e.fingerId;
 			case TouchUp if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				e.mouseX = Std.int(windowWidth * e.mouseX / TOUCH_SCALE);
-				e.mouseY = Std.int(windowHeight * e.mouseY / TOUCH_SCALE);
+				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
+				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				e.mouseX = Std.int(emx);
+				e.mouseY = Std.int(emy);
 				#end
-				eh = new Event(ERelease, e.mouseX, e.mouseY);
+				eh = new Event(ERelease, emx, emy);
 				eh.touchId = e.fingerId;
 			#elseif hldx
 			case KeyDown:
