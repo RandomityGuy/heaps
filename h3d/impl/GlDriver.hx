@@ -921,10 +921,10 @@ class GlDriver extends Driver {
 			return false;
 		}
 
-		#if (js || (hlsdl >= version("1.12.0")))
-		gl.texParameteri(bind, GL.TEXTURE_BASE_LEVEL, 0);
-		gl.texParameteri(bind, GL.TEXTURE_MAX_LEVEL, t.mipLevels-1);
-		#end
+		// #if (js || (hlsdl >= version("1.12.0")))
+		// gl.texParameteri(bind, GL.TEXTURE_BASE_LEVEL, 0);
+		// gl.texParameteri(bind, GL.TEXTURE_MAX_LEVEL, t.mipLevels-1);
+		// #end
 		for(mip in 0...t.mipLevels) {
 			var w = hxd.Math.imax(1, tt.width >> mip);
 			var h = hxd.Math.imax(1, tt.height >> mip);
