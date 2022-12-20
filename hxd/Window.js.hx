@@ -20,8 +20,6 @@ class Window {
 	public var isFocused(get, never):Bool;
 	public var propagateKeyEvents:Bool;
 
-	public var pixelWidth(get, never):Int;
-	public var pixelHeight(get, never):Int;
 	public var windowToPixelRatio(get, never):Float;
 
 	var curMouseX:Float = 0.;
