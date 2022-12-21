@@ -21,6 +21,7 @@ class Window {
 	public var propagateKeyEvents:Bool;
 
 	public var windowToPixelRatio(get, never):Float;
+	public var displayMode(get, set):DisplayMode;
 
 	var curMouseX:Float = 0.;
 	var curMouseY:Float = 0.;

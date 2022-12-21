@@ -19,6 +19,7 @@ class Window {
 	public var isFocused(get, never):Bool;
 
 	public var windowToPixelRatio(get, never):Float;
+	public var displayMode(get, set):DisplayMode;
 
 	function new():Void {
 		eventTargets = new List();
