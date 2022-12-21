@@ -116,6 +116,7 @@ class Text extends Drawable {
 	**/
 	public var selectionRange:{start:Int, length:Int};
 	public var selectionColor: h3d.Vector;
+	var _textColorVec: h3d.Vector;
 
 	var glyphs : TileGroup;
 	var needsRebuild : Bool;
@@ -144,6 +145,7 @@ class Text extends Drawable {
 		textAlign = Left;
 		text = "";
 		currentText = "";
+		_textColorVec = new h3d.Vector(1, 1, 1, 1);
 		textColor = 0xFFFFFF;
 		selectionColor = new h3d.Vector(1, 1, 1, 1);
 	}
@@ -456,7 +458,7 @@ class Text extends Drawable {
 						if (selectionRange != null && selectionRange.start <= i && i < selectionRange.start + selectionRange.length)
 							glyphs.addColor(x + offs, y, selectionColor.r, selectionColor.g, selectionColor.b, selectionColor.a, e.t);
 						else
-							glyphs.addColor(x + offs, y, color.r, color.g, color.b, color.a, e.t);// glyphs.add(x + offs, y, e.t);
+							glyphs.addColor(x + offs, y, _textColorVec.r, _textColorVec.g, _textColorVec.b, _textColorVec.a, e.t);// glyphs.add(x + offs, y, e.t);
 					}
 					if( y == 0 && e.t.dy < yMin ) yMin = e.t.dy;
 					x += esize + letterSpacing;
@@ -513,8 +515,8 @@ class Text extends Drawable {
 		if( this.textColor == c ) return c;
 		this.textColor = c;
 		var a = color.w;
-		color.setColor(c);
-		color.w = a;
+		this._textColorVec.setColor(c);
+		this._textColorVec.w = a;
 		return c;
 	}
 
