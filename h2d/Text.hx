@@ -111,6 +111,11 @@ class Text extends Drawable {
 		Allow line break.
 	**/
 	public var lineBreak(default,set) : Bool = true;
+	/**
+		If not null, represents current text selection range.
+	**/
+	public var selectionRange:{start:Int, length:Int};
+	public var selectionColor: h3d.Vector;
 
 	var glyphs : TileGroup;
 	var needsRebuild : Bool;
@@ -140,6 +145,7 @@ class Text extends Drawable {
 		text = "";
 		currentText = "";
 		textColor = 0xFFFFFF;
+		selectionColor = new h3d.Vector(1, 1, 1, 1);
 	}
 
 	function set_font(font) {
@@ -248,7 +254,13 @@ class Text extends Drawable {
 			absY = oldY;
 			color.set(oldR, oldG, oldB, oldA);
 		}
+		var oldR = color.r;
+		var oldG = color.g;
+		var oldB = color.b;
+		var oldA = color.a;
+		color.set(1, 1, 1, 1);
 		glyphs.drawWith(ctx,this);
+		color.set(oldR, oldG, oldB, oldA);
 	}
 
 	function set_text(t : String) {
@@ -440,7 +452,12 @@ class Text extends Drawable {
 				prevChar = -1;
 			} else {
 				if( e != null ) {
-					if( rebuild ) glyphs.add(x + offs, y, e.t);
+					if( rebuild ) {
+						if (selectionRange != null && selectionRange.start <= i && i < selectionRange.start + selectionRange.length)
+							glyphs.addColor(x + offs, y, selectionColor.r, selectionColor.g, selectionColor.b, selectionColor.a, e.t);
+						else
+							glyphs.addColor(x + offs, y, color.r, color.g, color.b, color.a, e.t);// glyphs.add(x + offs, y, e.t);
+					}
 					if( y == 0 && e.t.dy < yMin ) yMin = e.t.dy;
 					x += esize + letterSpacing;
 				}

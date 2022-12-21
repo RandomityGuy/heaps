@@ -34,10 +34,6 @@ class TextInput extends Text {
 	**/
 	public var inputWidth : Null<Int>;
 	/**
-		If not null, represents current text selection range.
-	**/
-	public var selectionRange : { start : Int, length : Int };
-	/**
 		When disabled, user would not be able to edit the input text (selection is still available).
 	**/
 	public var canEdit = true;
@@ -85,6 +81,7 @@ class TextInput extends Text {
 				var startIndex = textPos(e.relX, e.relY);
 				cursorIndex = startIndex;
 				selectionRange = null;
+				this.needsRebuild = true;
 
 				var pt = new h2d.col.Point();
 				var scene = getScene();
@@ -100,6 +97,7 @@ class TextInput extends Text {
 						selectionRange = { start : index, length : startIndex - index };
 					else
 						selectionRange = { start : startIndex, length : index - startIndex };
+					this.needsRebuild = true;
 					selectionSize = 0;
 					cursorIndex = index;
 					if( e.kind == ERelease || getScene() != scene )
@@ -118,6 +116,7 @@ class TextInput extends Text {
 		interactive.onFocusLost = function(e) {
 			cursorIndex = -1;
 			selectionRange = null;
+			this.needsRebuild = true;
 			onFocusLost(e);
 		};
 
@@ -128,6 +127,7 @@ class TextInput extends Text {
 			// double click to select all
 			if( t - lastClick < 0.3 && text.length != 0 ) {
 				selectionRange = { start : 0, length : text.length };
+				this.needsRebuild = true;
 				selectionSize = 0;
 				cursorIndex = text.length;
 			}
@@ -215,6 +215,7 @@ class TextInput extends Text {
 			if (text != "") {
 				cursorIndex = text.length;
 				selectionRange = {start: 0, length: text.length};
+					this.needsRebuild = true;
 				selectionSize = 0;
 			}
 			return;
@@ -272,16 +273,20 @@ class TextInput extends Text {
 			} else
 				selectionRange.length += cursorIndex - oldIndex;
 
-			if( selectionRange.length == 0 )
+			if( selectionRange.length == 0 ) {
 				selectionRange = null;
+				this.needsRebuild = true;
+			}
 			else if( selectionRange.length < 0 ) {
 				selectionRange.start += selectionRange.length;
 				selectionRange.length = -selectionRange.length;
 			}
 			selectionSize = 0;
 
-		} else
+		} else {
 			selectionRange = null;
+			this.needsRebuild = true;
+		}
 
 	}
 
@@ -291,6 +296,7 @@ class TextInput extends Text {
 		var end = cursorIndex + selectionRange.length;
 		text = text.substr(0, cursorIndex) + text.substr(end);
 		selectionRange = null;
+		this.needsRebuild = true;
 		return true;
 	}
 
@@ -320,6 +326,7 @@ class TextInput extends Text {
 		text = h.t;
 		cursorIndex = h.c;
 		selectionRange = h.sel;
+		this.needsRebuild = true;
 		if( selectionRange != null )
 			cursorIndex = selectionRange.start + selectionRange.length;
 	}
@@ -451,7 +458,10 @@ class TextInput extends Text {
 		interactive.focus();
 		if( cursorIndex < 0 ) {
 			cursorIndex = 0;
-			if( text != "" ) selectionRange = { start : 0, length : text.length };
+			if( text != "" ) { 
+				selectionRange = { start : 0, length : text.length };
+				this.needsRebuild = true;
+			}
 		}
 	}
 
