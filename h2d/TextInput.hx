@@ -417,9 +417,12 @@ class TextInput extends Text {
 			selectionTile.dx += selectionPos;
 			selectionTile.width += selectionSize;
 			var hasSdf = removeShader(this.sdfShader);
+			var prevColor = this.color.clone();
+			this.color.set(1, 1, 1, 1);
 			emitTile(ctx, selectionTile);
 			if (hasSdf)
 				addShader(this.sdfShader);
+			this.color.load(prevColor);
 			selectionTile.dx -= selectionPos;
 			selectionTile.width -= selectionSize;
 		}
