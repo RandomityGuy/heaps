@@ -260,7 +260,7 @@ class Text extends Drawable {
 		var oldG = color.g;
 		var oldB = color.b;
 		var oldA = color.a;
-		color.set(1, 1, 1, 1);
+		color.set(1, 1, 1, _textColorVec.a);
 		glyphs.drawWith(ctx,this);
 		color.set(oldR, oldG, oldB, oldA);
 	}
