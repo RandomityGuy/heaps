@@ -273,8 +273,13 @@ class TextInput extends Text {
 					beforeChange();
 					if (selectionRange != null)
 						cutSelection();
-					text = text.substr(0, cursorIndex) + String.fromCharCode(e.charCode) + text.substr(cursorIndex);
-					cursorIndex++;
+					if (e.inputChar != "") {
+						text = text.substr(0, cursorIndex) + e.inputChar + text.substr(cursorIndex);
+						cursorIndex += e.inputChar.length;
+					} else {
+						text = text.substr(0, cursorIndex) + String.fromCharCode(e.charCode) + text.substr(cursorIndex);
+						cursorIndex++;
+					}
 					onChange();
 				}
 		}
