@@ -68,6 +68,7 @@ class TextInput extends Text {
 	var lastChange = 0.;
 	var lastClick = 0.;
 	var maxHistorySize = 100;
+	var clipRect:h2d.Graphics;
 
 	/**
 		Create a new TextInput instance.
@@ -430,7 +431,14 @@ class TextInput extends Text {
 	override function draw(ctx:RenderContext) {
 		if (inputWidth != null) {
 			var h = localToGlobal(new h2d.col.Point(inputWidth, font.lineHeight));
-			ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
+			// ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
+			if (clipRect == null) {
+				clipRect = new h2d.Graphics();
+				clipRect.beginFill(1);
+				clipRect.drawRect(absX, absY, h.x - absX, h.y - absY);
+				clipRect.endFill();
+				this.getScene().addChild(clipRect);
+			}
 		}
 
 		if (cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex)) {
@@ -483,8 +491,8 @@ class TextInput extends Text {
 			}
 		}
 
-		if (inputWidth != null)
-			ctx.popRenderZone();
+		// if (inputWidth != null)
+		// ctx.popRenderZone();
 	}
 
 	/**
@@ -494,7 +502,7 @@ class TextInput extends Text {
 		var ib = interactive.getBounds();
 		#if android
 		textInput(true);
-		textInputRect(ib.x, ib.y, ib.width, ib.height);
+		textInputRect(Std.int(ib.x), Std.int(ib.y), Std.int(ib.width), Std.int(ib.height));
 		#end
 		interactive.focus();
 		if (cursorIndex < 0) {
