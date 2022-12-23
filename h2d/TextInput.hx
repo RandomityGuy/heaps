@@ -491,8 +491,10 @@ class TextInput extends Text {
 		Sets focus on this `TextInput`.
 	**/
 	public function focus() {
+		var ib = interactive.getBounds();
 		#if android
 		textInput(true);
+		textInputRect(ib.x, ib.y, ib.width, ib.height);
 		#end
 		interactive.focus();
 		if (cursorIndex < 0) {
@@ -588,5 +590,8 @@ class TextInput extends Text {
 	#if android
 	@:hlNative("sdl", "text_input")
 	public static function textInput(enable:Bool):Void {}
+
+	@:hlNative("sdl", "text_input_rect")
+	public static function textInputRect(x:Int, y:Int, w:Int, h:Int):Void {}
 	#end
 }
