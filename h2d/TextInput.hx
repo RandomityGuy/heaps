@@ -68,7 +68,6 @@ class TextInput extends Text {
 	var lastChange = 0.;
 	var lastClick = 0.;
 	var maxHistorySize = 100;
-	var clipRect:h2d.Graphics;
 
 	/**
 		Create a new TextInput instance.
@@ -432,13 +431,6 @@ class TextInput extends Text {
 		if (inputWidth != null) {
 			var h = localToGlobal(new h2d.col.Point(inputWidth, font.lineHeight));
 			// ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
-			if (clipRect == null) {
-				clipRect = new h2d.Graphics();
-				clipRect.beginFill(1);
-				clipRect.drawRect(absX, absY, h.x - absX, h.y - absY);
-				clipRect.endFill();
-				this.getScene().addChild(clipRect);
-			}
 		}
 
 		if (cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex)) {
@@ -492,7 +484,7 @@ class TextInput extends Text {
 		}
 
 		// if (inputWidth != null)
-		// ctx.popRenderZone();
+		// 	ctx.popRenderZone();
 	}
 
 	/**

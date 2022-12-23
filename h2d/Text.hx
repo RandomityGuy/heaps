@@ -147,6 +147,7 @@ class Text extends Drawable {
 		currentText = "";
 		_textColorVec = new h3d.Vector(1, 1, 1, 1);
 		textColor = 0xFFFFFF;
+		this.color = new h3d.Vector(1, 1, 1, 1);
 		selectionColor = new h3d.Vector(1, 1, 1, 1);
 	}
 

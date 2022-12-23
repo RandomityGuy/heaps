@@ -74,7 +74,7 @@ class Window {
 
 	static var CODEMAP = #if hlsdl []; #else [for (i in 0...2048) i]; #end
 	#if hlsdl
-	static inline var TOUCH_SCALE = #if (hl_ver >= version("1.12.0")) 10000 #else 10000 #end;
+	static inline var TOUCH_SCALE = #if (hl_ver >= version("1.12.0")) 1000000 #else 1000000 #end;
 	#if heaps_vulkan
 	public static var USE_VULKAN = false;
 	#end
