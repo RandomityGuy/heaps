@@ -538,7 +538,6 @@ class RenderContext extends h3d.impl.RenderContext {
 			Std.int(w * scaleX + 1e-10),
 			Std.int(h * scaleY + 1e-10)
 		);
-		engine.clear(0, 1);
 	}
 
 	inline function clearRZ() {
