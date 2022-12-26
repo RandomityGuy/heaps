@@ -273,7 +273,7 @@ class TextInput extends Text {
 					beforeChange();
 					if (selectionRange != null)
 						cutSelection();
-					if (e.inputChar != "") {
+					if (e.inputChar != "" && e.inputChar != null) {
 						text = text.substr(0, cursorIndex) + e.inputChar + text.substr(cursorIndex);
 						cursorIndex += e.inputChar.length;
 					} else {
