@@ -395,7 +395,7 @@ class TextInput extends Text {
 
 	override function set_font(f) {
 		super.set_font(f);
-		cursorTile = h2d.Tile.fromColor(0xFFFFFF, 1, font.size);
+		cursorTile = h2d.Tile.fromColor(0x000000, 1, font.size);
 		cursorTile.dy = 2;
 		selectionTile = h2d.Tile.fromColor(0x3399FF, 0, hxd.Math.ceil(font.lineHeight));
 		return f;
@@ -478,7 +478,13 @@ class TextInput extends Text {
 			cursorBlink += ctx.elapsedTime;
 			if (cursorBlink % (cursorBlinkTime * 2) < cursorBlinkTime) {
 				cursorTile.dx += cursorX - scrollX;
+				var hasSdf = removeShader(this.sdfShader);
+				var prevColor = this.color.clone();
+				this.color.set(1, 1, 1, 1);
 				emitTile(ctx, cursorTile);
+				if (hasSdf)
+					addShader(this.sdfShader);
+				this.color.load(prevColor);
 				cursorTile.dx -= cursorX - scrollX;
 			}
 		}
