@@ -518,6 +518,7 @@ class Text extends Drawable {
 		var a = color.w;
 		this._textColorVec.setColor(c);
 		this._textColorVec.w = a;
+		rebuild();
 		return c;
 	}
 
