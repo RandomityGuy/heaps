@@ -1,7 +1,6 @@
 package hxd;
 
 import hxd.Key in K;
-import hxd.impl.MouseMode;
 
 #if (hlsdl && hldx)
 #error "You shouldn't use both -lib hlsdl and -lib hldx"
@@ -156,22 +155,6 @@ class Window {
 		windowHeight = height;
 		for (f in resizeEvents)
 			f();
-	}
-
-	public function setCursorPos(x:Int, y:Int, emitEvent:Bool = false):Void {
-		#if hldx
-		if (mouseMode == Absolute)
-			window.setCursorPosition(x, y);
-		#elseif hlsdl
-		if (mouseMode == Absolute)
-			window.warpMouse(x, y);
-		#else
-		throw "Not implemented";
-		#end
-		curMouseX = x;
-		curMouseY = y;
-		if (emitEvent)
-			event(new hxd.Event(EMove, x, y));
 	}
 
 	@:deprecated("Use the displayMode property instead")
@@ -474,13 +457,6 @@ class Window {
 			93 => K.QWERTY_BRACKET_RIGHT,
 			96 => K.QWERTY_TILDE,
 			167 => K.QWERTY_BACKSLASH,
-
-			// AZERTY
-			41 => K.QWERTY_BRACKET_LEFT, // degree
-			94 => K.QWERTY_BRACKET_RIGHT, // caret
-			249 => K.QWERTY_TILDE, // percent
-			58 => K.QWERTY_SLASH, // slash
-
 			1101 => K.CONTEXT_MENU,
 			1057 => K.CAPS_LOCK,
 			1071 => K.SCROLL_LOCK,
