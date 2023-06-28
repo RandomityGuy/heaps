@@ -1,5 +1,7 @@
 package hxd;
 
+import hxd.impl.MouseMode;
+
 enum DisplayMode {
 	Windowed;
 	Borderless;

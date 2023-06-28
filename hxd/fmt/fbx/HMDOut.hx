@@ -37,6 +37,9 @@ class HMDOut extends BaseLibrary {
 		var uvs = geom.getUVs();
 		var index = geom.getIndexes();
 
+		if ( index.vidx.length > 0 && uvs[0] == null ) @:privateAccess
+			throw "Need UVs to build tangents" + geom.lib != null ? ' in ${geom.lib.fileName}' : '';
+
 		#if (hl && !hl_disable_mikkt && (haxe_ver >= "4.0"))
 		var m = new hl.Format.Mikktspace();
 		m.buffer = new hl.Bytes(8 * 4 * index.vidx.length);
@@ -668,7 +671,11 @@ class HMDOut extends BaseLibrary {
 
 			var gdata = hgeom.get(g.getId());
 			if( gdata == null ) {
-				var geom = buildGeom(new hxd.fmt.fbx.Geometry(this, g), skin, dataOut, hasNormalMap || generateTangents);
+				var geom = try {
+					buildGeom(new hxd.fmt.fbx.Geometry(this, g), skin, dataOut, hasNormalMap || generateTangents);
+				} catch ( e : Dynamic ) {
+						throw e + " in " + model.name;
+				}
 				gdata = { gid : d.geometries.length, materials : geom.materials };
 				d.geometries.push(geom.g);
 				hgeom.set(g.getId(), gdata);

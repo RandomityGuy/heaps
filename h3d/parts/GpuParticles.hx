@@ -501,9 +501,11 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			if( p != null ) p.dispose();
 	}
 
-	override function getBoundsRec(b:h3d.col.Bounds) {
-		if( flags.has(FIgnoreBounds) )
-			return super.getBoundsRec(b);
+	override function addBoundsRec(b:h3d.col.Bounds, relativeTo) {
+		if( flags.has(FIgnoreBounds) ) {
+			super.addBoundsRec(b, relativeTo);
+			return;
+		}
 		for( g in groups )
 			if( g.needRebuild ) {
 				var s = getScene();
@@ -516,7 +518,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				}
 				break;
 			}
-		return super.getBoundsRec(b);
+		super.addBoundsRec(b, relativeTo);
 	}
 
 	public dynamic function onEnd() {
@@ -905,7 +907,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				return; // was removed
 		}
 
-		if( !ctx.visibleFlag && !alwaysSync )
+		if( !ctx.visibleFlag && !alwaysSyncAnimation )
 			return;
 
 		for( g in groups ) {

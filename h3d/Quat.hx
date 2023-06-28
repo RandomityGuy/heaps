@@ -74,10 +74,13 @@ class Quat {
 		}
 	}
 
-	public function initDirection( dir : Vector ) {
+	public function initDirection( dir : Vector, ?up : Vector ) {
 		// inlined version of initRotationMatrix(Matrix.lookAtX(dir))
 		var ax = dir.clone().normalized();
-		var ay = new Vector(-ax.y, ax.x, 0).normalized();
+		var ay = new Vector(-ax.y, ax.x, 0);
+		if( up != null ) 
+			ay.load(up.cross(ax));
+		ay.normalize();
 		if( ay.lengthSq() < Math.EPSILON ) {
 			ay.x = ax.y;
 			ay.y = ax.z;
@@ -247,6 +250,32 @@ class Quat {
 	}
 
 	/**
+		Makes a unit quaternion to the power of the value.
+	**/
+	public inline function pow( v : Float ) {
+		// ln()
+		var r = Math.sqrt(x*x+y*y+z*z);
+		var t = r > Math.EPSILON ? Math.atan2(r,w)/r : 0;
+		w = 0.5 * std.Math.log(w*w+x*x+y*y+z*z);
+		x *= t;
+		y *= t;
+		z *= t;
+		// scale
+		x *= v;
+		y *= v;
+		z *= v;
+		w *= v;
+		// exp
+		var r = Math.sqrt(x*x+y*y+z*z);
+		var et = std.Math.exp(w);
+		var s = r > Math.EPSILON ? et *Math.sin(r)/r : 0;
+		w = et * Math.cos(r);
+		x *= s;
+		y *= s;
+		z *= s;
+	}
+
+	/**
 		Negate the quaternion: this will not change the actual angle, use `conjugate` for that.
 	**/
 	public inline function negate() {
@@ -262,6 +291,10 @@ class Quat {
 
 	public inline function getDirection() {
 		return new h3d.Vector(1 - 2 * ( y * y + z * z ), 2 * ( x * y + z * w ), 2 * ( x * z - y * w ));
+	}
+
+	public inline function getUpAxis() {
+		return new h3d.Vector(2 * ( x*z + y*w ),2 * ( y*z - x*w ), 1 - 2 * ( x*x + y*y ));
 	}
 
 	/**

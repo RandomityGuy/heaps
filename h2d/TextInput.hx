@@ -126,6 +126,11 @@ class TextInput extends Text {
 			onTextInput(e);
 			handleKey(e);
 		};
+		interactive.onFocus = function(e) {
+			onFocus(e);
+			if (useSoftwareKeyboard && canEdit)
+				showSoftwareKeyboard(this);
+		}
 		interactive.onFocusLost = function(e) {
 			cursorIndex = -1;
 			selectionRange = null;
@@ -150,7 +155,6 @@ class TextInput extends Text {
 
 		interactive.onKeyUp = function(e) onKeyUp(e);
 		interactive.onRelease = function(e) onRelease(e);
-		interactive.onFocus = function(e) onFocus(e);
 		interactive.onKeyUp = function(e) onKeyUp(e);
 		interactive.onMove = function(e) onMove(e);
 		interactive.onOver = function(e) onOver(e);
@@ -379,6 +383,70 @@ class TextInput extends Text {
 			undo.shift();
 	}
 
+	function getAllLines() {
+		var lines = this.text.split('\n');
+		var finalLines:Array<String> = [];
+
+		for (l in lines) {
+			var splitText = splitText(l).split('\n');
+			finalLines = finalLines.concat(splitText);
+		}
+
+		for (i in 0...finalLines.length) {
+			finalLines[i] += '\n';
+		}
+
+		return finalLines;
+	}
+
+	function getCurrentLine():String {
+		var lines = getAllLines();
+		var currIndex = 0;
+
+		for (i in 0...lines.length) {
+			currIndex += lines[i].length;
+			if (cursorIndex < currIndex) {
+				return lines[i];
+			}
+		}
+		return '';
+	}
+
+	function getCursorXOffset() {
+		var lines = getAllLines();
+		var offset = cursorIndex;
+		var currLine = getCurrentLine();
+		var currIndex = 0;
+
+		for (i in 0...lines.length) {
+			currIndex += lines[i].length;
+			if (cursorIndex < currIndex) {
+				break;
+			} else {
+				offset -= lines[i].length;
+			}
+		}
+
+		return calcTextWidth(currLine.substr(0, offset));
+	}
+
+	function getCursorYOffset() {
+		// return 0.0;
+		var lines = getAllLines();
+		var currIndex = 0;
+		var lineNum = 0;
+
+		for (i in 0...lines.length) {
+			currIndex += lines[i].length;
+			if (cursorIndex < currIndex) {
+				lineNum = i;
+				break;
+			}
+		}
+
+		return lineNum * font.lineHeight;
+	}
+
 	/**
 		Returns a String representing currently selected text area or `null` if no text is selected.
 	**/
@@ -412,192 +480,200 @@ class TextInput extends Text {
 
 	function textPos(x:Float, y:Float) {
 		x += scrollX;
+		var lineIndex = Math.floor(y / font.lineHeight);
+		var lines = getAllLines();
+		lineIndex = hxd.Math.iclamp(lineIndex, 0, lines.length - 1);
+		var selectedLine = lines[lineIndex];
 		var pos = 0;
 		while (pos < text.length) {
 			if (calcTextWidth(text.substr(0, pos + 1)) > x)
 				break;
-			pos++;
 		}
-		return pos;
+		pos++;
+		linePos++;
+	}
+	return pos - 1;
+}
+
+override function sync(ctx) {
+	var lines = getAllLines();
+	interactive.width = (inputWidth != null ? inputWidth : maxWidth != null ? Math.ceil(maxWidth) : textWidth);
+	interactive.height = font.lineHeight * lines.length;
+	super.sync(ctx);
+}
+
+override function draw(ctx:RenderContext) {
+	if (inputWidth != null) {
+		var h = localToGlobal(new h2d.col.Point(inputWidth, font.lineHeight));
+		ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
 	}
 
-	override function sync(ctx) {
-		interactive.width = (inputWidth != null ? inputWidth : maxWidth != null ? Math.ceil(maxWidth) : textWidth);
-		interactive.height = font.lineHeight;
-		super.sync(ctx);
+	if (cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex)) {
+		if (cursorIndex > text.length)
+			cursorIndex = text.length;
+		cursorText = text;
+		cursorXIndex = cursorIndex;
+		cursorX = calcTextWidth(text.substr(0, cursorIndex));
+		if (inputWidth != null && cursorX - scrollX >= inputWidth)
+			scrollX = cursorX - inputWidth + 1;
+		else if (cursorX < scrollX && cursorIndex > 0)
+			scrollX = cursorX - hxd.Math.imin(inputWidth, Std.int(cursorX));
+		else if (cursorX < scrollX)
+			scrollX = cursorX;
 	}
 
-	override function draw(ctx:RenderContext) {
-		if (inputWidth != null) {
-			var h = localToGlobal(new h2d.col.Point(inputWidth, font.lineHeight));
-			ctx.clipRenderZone(absX, absY, h.x - absX, h.y - absY);
+	absX -= scrollX * matA;
+	absY -= scrollX * matC;
+
+	if (selectionRange != null) {
+		if (selectionSize == 0) {
+			selectionPos = calcTextWidth(text.substr(0, selectionRange.start));
+			selectionSize = calcTextWidth(text.substr(selectionRange.start, selectionRange.length));
+			if (selectionRange.start + selectionRange.length == text.length)
+				selectionSize += cursorTile.width; // last pixel
 		}
+		selectionTile.dx += selectionPos;
+		selectionTile.width += selectionSize;
+		var hasSdf = removeShader(this.sdfShader);
+		var prevColor = this.color.clone();
+		this.color.set(1, 1, 1, 1);
+		emitTile(ctx, selectionTile);
+		if (hasSdf)
+			addShader(this.sdfShader);
+		this.color.load(prevColor);
+		selectionTile.dx -= selectionPos;
+		selectionTile.width -= selectionSize;
+	}
 
-		if (cursorIndex >= 0 && (text != cursorText || cursorIndex != cursorXIndex)) {
-			if (cursorIndex > text.length)
-				cursorIndex = text.length;
-			cursorText = text;
-			cursorXIndex = cursorIndex;
-			cursorX = calcTextWidth(text.substr(0, cursorIndex));
-			if (inputWidth != null && cursorX - scrollX >= inputWidth)
-				scrollX = cursorX - inputWidth + 1;
-			else if (cursorX < scrollX && cursorIndex > 0)
-				scrollX = cursorX - hxd.Math.imin(inputWidth, Std.int(cursorX));
-			else if (cursorX < scrollX)
-				scrollX = cursorX;
-		}
+	super.draw(ctx);
+	absX += scrollX * matA;
+	absY += scrollX * matC;
 
-		absX -= scrollX * matA;
-		absY -= scrollX * matC;
-
-		if (selectionRange != null) {
-			if (selectionSize == 0) {
-				selectionPos = calcTextWidth(text.substr(0, selectionRange.start));
-				selectionSize = calcTextWidth(text.substr(selectionRange.start, selectionRange.length));
-				if (selectionRange.start + selectionRange.length == text.length)
-					selectionSize += cursorTile.width; // last pixel
-			}
-			selectionTile.dx += selectionPos;
-			selectionTile.width += selectionSize;
+	if (cursorIndex >= 0) {
+		cursorBlink += ctx.elapsedTime;
+		if (cursorBlink % (cursorBlinkTime * 2) < cursorBlinkTime) {
+			cursorTile.dx += cursorX - scrollX;
 			var hasSdf = removeShader(this.sdfShader);
 			var prevColor = this.color.clone();
 			this.color.set(1, 1, 1, 1);
-			emitTile(ctx, selectionTile);
+			emitTile(ctx, cursorTile);
 			if (hasSdf)
 				addShader(this.sdfShader);
 			this.color.load(prevColor);
-			selectionTile.dx -= selectionPos;
-			selectionTile.width -= selectionSize;
-		}
-
-		super.draw(ctx);
-		absX += scrollX * matA;
-		absY += scrollX * matC;
-
-		if (cursorIndex >= 0) {
-			cursorBlink += ctx.elapsedTime;
-			if (cursorBlink % (cursorBlinkTime * 2) < cursorBlinkTime) {
-				cursorTile.dx += cursorX - scrollX;
-				var hasSdf = removeShader(this.sdfShader);
-				var prevColor = this.color.clone();
-				this.color.set(1, 1, 1, 1);
-				emitTile(ctx, cursorTile);
-				if (hasSdf)
-					addShader(this.sdfShader);
-				this.color.load(prevColor);
-				cursorTile.dx -= cursorX - scrollX;
-			}
-		}
-
-		if (inputWidth != null)
-			ctx.popRenderZone();
-	}
-
-	/**
-		Sets focus on this `TextInput`.
-	**/
-	public function focus() {
-		var ib = interactive.getBounds();
-		#if android
-		textInput(true);
-		textInputRect(Std.int(ib.x), Std.int(ib.y), Std.int(ib.width), Std.int(ib.height));
-		#end
-		interactive.focus();
-		if (cursorIndex < 0) {
-			cursorIndex = 0;
-			if (text != "") {
-				selectionRange = {start: 0, length: text.length};
-				this.needsRebuild = true;
-			}
+			cursorTile.dx -= cursorX - scrollX;
+			cursorTile.dy -= cursorY;
 		}
 	}
 
-	/**
-		Checks if TextInput is currently focused.
-	**/
-	public function hasFocus() {
-		return interactive.hasFocus();
-	}
+	if (inputWidth != null)
+		ctx.popRenderZone();
+}
 
-	/**
-		Delegate of underlying `Interactive.onOut`.
-	**/
-	public dynamic function onOut(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onOver`.
-	**/
-	public dynamic function onOver(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onMove`.
-	**/
-	public dynamic function onMove(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onClick`.
-	**/
-	public dynamic function onClick(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onPush`.
-	**/
-	public dynamic function onPush(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onRelease`.
-	**/
-	public dynamic function onRelease(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onKeyDown`.
-	**/
-	public dynamic function onKeyDown(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onKeyUp`.
-	**/
-	public dynamic function onKeyUp(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onTextInput`.
-	**/
-	public dynamic function onTextInput(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onFocus`.
-	**/
-	public dynamic function onFocus(e:hxd.Event) {}
-
-	/**
-		Delegate of underlying `Interactive.onFocusLost`.
-	**/
-	public dynamic function onFocusLost(e:hxd.Event) {}
-
-	/**
-		Sent when user modifies TextInput contents.
-	**/
-	public dynamic function onChange() {}
-
-	override function drawRec(ctx:RenderContext) {
-		var old = interactive.visible;
-		interactive.visible = false;
-		interactive.draw(ctx);
-		super.drawRec(ctx);
-		interactive.visible = old;
-	}
-
-	function get_backgroundColor()
-		return interactive.backgroundColor;
-
-	function set_backgroundColor(v)
-		return interactive.backgroundColor = v;
-
+/**
+	Sets focus on this `TextInput`.
+**/
+public function focus() {
+	var ib = interactive.getBounds();
 	#if android
-	@:hlNative("sdl", "text_input")
-	public static function textInput(enable:Bool):Void {}
-
-	@:hlNative("sdl", "text_input_rect")
-	public static function textInputRect(x:Int, y:Int, w:Int, h:Int):Void {}
+	textInput(true);
+	textInputRect(Std.int(ib.x), Std.int(ib.y), Std.int(ib.width), Std.int(ib.height));
 	#end
+	interactive.focus();
+	if (cursorIndex < 0) {
+		cursorIndex = 0;
+		if (text != "") {
+			selectionRange = {start: 0, length: text.length};
+			this.needsRebuild = true;
+		}
+	}
+}
+
+/**
+	Checks if TextInput is currently focused.
+**/
+public function hasFocus() {
+	return interactive.hasFocus();
+}
+
+/**
+	Delegate of underlying `Interactive.onOut`.
+**/
+public dynamic function onOut(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onOver`.
+**/
+public dynamic function onOver(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onMove`.
+**/
+public dynamic function onMove(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onClick`.
+**/
+public dynamic function onClick(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onPush`.
+**/
+public dynamic function onPush(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onRelease`.
+**/
+public dynamic function onRelease(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onKeyDown`.
+**/
+public dynamic function onKeyDown(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onKeyUp`.
+**/
+public dynamic function onKeyUp(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onTextInput`.
+**/
+public dynamic function onTextInput(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onFocus`.
+**/
+public dynamic function onFocus(e:hxd.Event) {}
+
+/**
+	Delegate of underlying `Interactive.onFocusLost`.
+**/
+public dynamic function onFocusLost(e:hxd.Event) {}
+
+/**
+	Sent when user modifies TextInput contents.
+**/
+public dynamic function onChange() {}
+
+override function drawRec(ctx:RenderContext) {
+	var old = interactive.visible;
+	interactive.visible = false;
+	interactive.draw(ctx);
+	super.drawRec(ctx);
+	interactive.visible = old;
+}
+
+function get_backgroundColor()
+	return interactive.backgroundColor;
+
+function set_backgroundColor(v)
+	return interactive.backgroundColor = v;
+
+#if android
+@:hlNative("sdl", "text_input")
+public static function textInput(enable:Bool):Void {}
+
+@:hlNative("sdl", "text_input_rect")
+public static function textInputRect(x:Int, y:Int, w:Int, h:Int):Void {}
+#end
 }

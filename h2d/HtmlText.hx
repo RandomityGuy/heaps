@@ -105,9 +105,11 @@ class HtmlText extends Text {
 			var oldX = absX, oldY = absY;
 			absX += dropShadow.dx * matA + dropShadow.dy * matC;
 			absY += dropShadow.dx * matB + dropShadow.dy * matD;
-			if( dropMatrix == null )
+			if( dropMatrix == null ) {
 				dropMatrix = new h3d.shader.ColorMatrix();
-			addShader(dropMatrix);
+				addShader(dropMatrix);
+			}
+			dropMatrix.enabled = true;
 			var m = dropMatrix.matrix;
 			m.zero();
 			m._41 = ((dropShadow.color >> 16) & 0xFF) / 255;
@@ -115,12 +117,26 @@ class HtmlText extends Text {
 			m._43 = (dropShadow.color & 0xFF) / 255;
 			m._44 = dropShadow.alpha;
 			glyphs.drawWith(ctx, this);
-			removeShader(dropMatrix);
+			dropMatrix.enabled = false;
 			absX = oldX;
 			absY = oldY;
-		} else
+		} else {
+			removeShader(dropMatrix);
 			dropMatrix = null;
+		}
 		glyphs.drawWith(ctx,this);
+	}
+
+	override function getShader< T:hxsl.Shader >( stype : Class<T> ) : T {
+		if (shaders != null) for( s in shaders ) {
+			var c = Std.downcast(s, h3d.shader.ColorMatrix);
+			if ( c != null && !c.enabled )
+				continue;
+			var s = hxd.impl.Api.downcast(s, stype);
+			if( s != null )
+				return s;
+		}
+		return null;
 	}
 
 	/**
@@ -403,14 +419,14 @@ class HtmlText extends Text {
 
 					var size = x + esize + letterSpacing;
 					var k = i + 1, max = text.length;
-					var prevChar = prevChar;
+					var prevChar = cc;
 					while ( size <= maxWidth && k < max ) {
 						var cc = text.charCodeAt(k++);
 						if ( lineBreak && (font.charset.isSpace(cc) || cc == '\n'.code ) ) break;
 						var e = font.getChar(cc);
 						size += e.width + letterSpacing + e.getKerningOffset(prevChar);
 						prevChar = cc;
-						var nc = text.charCodeAt(k+1);
+						var nc = text.charCodeAt(k);
 						if ( font.charset.isBreakChar(cc) && (nc == null || !font.charset.isComplementChar(nc)) ) break;
 					}
 					// Avoid empty line when last char causes line-break while being CJK

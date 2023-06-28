@@ -1,5 +1,8 @@
 package hxd;
 
+import js.Browser;
+import hxd.impl.MouseMode;
+
 enum DisplayMode {
 	Windowed;
 	Borderless;
@@ -111,8 +114,6 @@ class Window {
 				checkResize();
 			});
 			observer.observe(canvas);
-		} else {
-			js.Browser.window.addEventListener("resize", checkResize);
 		}
 
 		canvas.addEventListener("contextmenu", function(e) {
@@ -216,6 +217,15 @@ class Window {
 			doc.exitFullscreen();
 	}
 
+	public function setCursorPos(x:Int, y:Int, emitEvent:Bool = false):Void {
+		if (mouseMode == Absolute)
+			throw "setCursorPos only allowed in relative mouse modes on this platform.";
+		curMouseX = x + canvasPos.left;
+		curMouseY = y + canvasPos.top;
+		if (emitEvent)
+			event(new hxd.Event(EMove, x, y));
+	}
+
 	public function setCurrent() {
 		inst = this;
 	}
@@ -269,7 +279,7 @@ class Window {
 			else
 				js.Browser.window.document.exitPointerLock();
 		}
-		return _mouseLock = v;
+		return mouseMode = v;
 	}
 
 	function get_vsync():Bool
@@ -279,6 +289,16 @@ class Window {
 		if (!b)
 			throw "Can't disable vsync on this platform";
 		return true;
+	}
+
+	function onPointerLockChange(e:js.html.Event) {
+		if (mouseMode != Absolute && pointerLockTarget.ownerDocument.pointerLockElement != pointerLockTarget) {
+			// Firefox: Do not instantly re-lock the mouse if user altered mouseMode via `onMouseMouseChange` back into relative.
+			canLockMouse = false;
+			// User cancelled out of the pointer lock by pressing escape or by other means: Switch to Absolute mode
+			mouseMode = Absolute;
+			canLockMouse = true;
+		}
 	}
 
 	function onMouseDown(e:js.html.MouseEvent) {

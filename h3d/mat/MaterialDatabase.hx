@@ -25,7 +25,7 @@ class MaterialDatabase {
 
 	function saveData( model : hxd.res.Resource, data : Dynamic ) {
 		var file = getFilePath(model);
-		#if (sys || nodejs)
+		#if ((sys || nodejs) && !usesys)
 		var fs = hxd.impl.Api.downcast(hxd.res.Loader.currentInstance.fs, hxd.fs.LocalFileSystem);
 		if( fs != null && !haxe.io.Path.isAbsolute(file) )
 			file = fs.baseDir + file;
@@ -48,7 +48,7 @@ class MaterialDatabase {
 		return Reflect.field(p, material.name);
 	}
 
-	public function saveMatProps( material : Material, setup : MaterialSetup ) {
+	public function saveMatProps( material : Material, setup : MaterialSetup, ?defaultProps : Any ) {
 		var path = ["materials", setup.name, material.name];
 		var root : Dynamic = getModelData(material.model);
 		if( root == null )
@@ -68,7 +68,7 @@ class MaterialDatabase {
 		Reflect.deleteField(root, name);
 
 		var currentProps = material.props;
-		var defaultProps = material.getDefaultProps();
+		if ( defaultProps == null ) defaultProps = material.getDefaultProps();
 		if( currentProps == null || Std.string(defaultProps) == Std.string(currentProps) ) {
 			// cleanup
 			while( path.length > 0 ) {

@@ -483,10 +483,13 @@ class RenderContext extends h3d.impl.RenderContext {
 		}
 	}
 
-	public function getCurrentRenderZone() {
+	public function getCurrentRenderZone( ?bounds : h2d.col.Bounds ) {
 		if( !hasRenderZone )
 			return null;
-		return h2d.col.Bounds.fromValues(renderX, renderY, renderW, renderH);
+		if( bounds == null )
+			bounds = new h2d.col.Bounds();
+		bounds.set(renderX, renderY, renderW, renderH);
+		return bounds;
 	}
 
 	/**
@@ -741,6 +744,7 @@ class RenderContext extends h3d.impl.RenderContext {
 
 		if( !beginDraw(obj, tile.getTexture(), true, true) ) return false;
 
+		#if sceneprof h3d.impl.SceneProf.mark(obj); #end
 		setupColor(obj);
 		baseShader.absoluteMatrixA.set(tile.width * obj.matA, tile.height * obj.matC, obj.absX + tile.dx * obj.matA + tile.dy * obj.matC);
 		baseShader.absoluteMatrixB.set(tile.width * obj.matB, tile.height * obj.matD, obj.absY + tile.dx * obj.matB + tile.dy * obj.matD);

@@ -137,8 +137,10 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 					p = p.parent;
 				if( p != null ) continue;
 
-				var minv = i.getInvPos();
-				r.transform(minv);
+				if( !i.isAbsoluteShape ) {
+					var minv = i.getInvPos();
+					r.transform(minv);
+				}
 
 				// check for NaN
 				if( r.lx != r.lx ) {
@@ -403,8 +405,14 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		ctx.start();
 		renderer.start();
 
+		#if sceneprof h3d.impl.SceneProf.begin("sync", ctx.frame); #end
 		syncRec(ctx);
+		#if sceneprof
+		h3d.impl.SceneProf.end();
+		h3d.impl.SceneProf.begin("emit", ctx.frame);
+		#end
 		emitRec(ctx);
+		#if sceneprof h3d.impl.SceneProf.end(); #end
 
 		var passes = [];
 		var passIndex = -1;
@@ -452,4 +460,31 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		}
 	}
 
+	var prevDB : h3d.mat.DepthBuffer;
+	var prevEngine = null;
+	/**
+		Temporarily overrides the output render target. This is useful for picture-in-picture rendering,
+		where the output render target has a different size from the window.
+		`tex` must have a matching depthBuffer attached.
+		Call `setOutputTarget()` after `render()` has been called.
+	**/
+	public function setOutputTarget( ?engine: h3d.Engine, ?tex : h3d.mat.Texture ) @:privateAccess {
+		if(tex != null) {
+			if(prevDB != null) throw "missing setOutputTarget()";
+			engine.pushTarget(tex);
+			engine.width = tex.width;
+			engine.height = tex.height;
+			prevDB = ctx.textures.defaultDepthBuffer;
+			prevEngine = engine;
+			ctx.textures.defaultDepthBuffer = tex.depthBuffer;
+		}
+		else {
+			prevEngine.popTarget();
+			prevEngine.width = prevDB.width;
+			prevEngine.height = prevDB.height;
+			ctx.textures.defaultDepthBuffer = prevDB;
+			prevDB = null;
+			prevEngine = null;
+		}
+	}
 }

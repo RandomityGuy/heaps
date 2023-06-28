@@ -94,14 +94,14 @@ class Skin extends MultiMaterial {
 		return s;
 	}
 
-	override function getBoundsRec( b : h3d.col.Bounds ) {
+	override function addBoundsRec( b : h3d.col.Bounds, relativeTo : h3d.Matrix ) {
 		// ignore primitive bounds !
 		var old = primitive;
 		primitive = null;
-		b = super.getBoundsRec(b);
+		super.addBoundsRec(b, relativeTo);
 		primitive = old;
 		if( flags.has(FIgnoreBounds) )
-			return b;
+			return;
 		syncJoints();
 		if( skinData.vertexWeights == null )
 			cast(primitive, h3d.prim.HMDModel).loadSkin(skinData);
@@ -119,7 +119,6 @@ class Skin extends MultiMaterial {
 				b.addSpherePos(pt.x, pt.y, pt.z, j.offsetRay * scale);
 			}
 		}
-		return b;
 	}
 
 	public function getCurrentSkeletonBounds() {
@@ -217,7 +216,7 @@ class Skin extends MultiMaterial {
 	}
 
 	override function sync( ctx : RenderContext ) {
-		if( !ctx.visibleFlag && !alwaysSync )
+		if( !ctx.visibleFlag && !alwaysSyncAnimation )
 			return;
 		syncJoints();
 	}
@@ -262,7 +261,7 @@ class Skin extends MultiMaterial {
 			if( jointsGraphics == null ) {
 				jointsGraphics = new Graphics(this);
 				jointsGraphics.material.mainPass.depth(false, Always);
-				jointsGraphics.material.mainPass.setPassName("overlay");
+				jointsGraphics.material.mainPass.setPassName("alpha");
 			}
 			var topParent : Object = this;
 			while( topParent.parent != null )

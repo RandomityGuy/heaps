@@ -13,8 +13,12 @@ class Pass {
 	var bits : Int = 0;
 	var parentPass : Pass;
 	var parentShaders : hxsl.ShaderList;
+	var selfShaders(default, null) : hxsl.ShaderList;
+	var selfShadersChanged(default, null) : Bool;
+	var selfShadersCache : hxsl.ShaderList;
 	var shaders : hxsl.ShaderList;
 	var nextPass : Pass;
+	var culled : Bool = false;
 
 	@:bits(flags) public var enableLights : Bool;
 	/**
@@ -95,66 +99,42 @@ class Pass {
 	}
 
 	public function setBlendMode( b : BlendMode ) {
+		blendOp = Add;
+		blendAlphaOp = Add;
+
 		switch( b ) {
 		case None: // Out = 1 * Src + 0 * Dst
 			blend(One, Zero);
-			blendOp = Add;
-			blendAlphaOp = Add;
 		case Alpha: // Out = SrcA * Src + (1 - SrcA) * Dst
 			blend(SrcAlpha, OneMinusSrcAlpha);
-			blendOp = Add;
-			blendAlphaOp = Add;
+			blendAlphaSrc = One;
 		case Add: // Out = SrcA * Src + 1 * Dst
 			blend(SrcAlpha, One);
-			blendOp = Add;
-			blendAlphaOp = Add;
+			blendAlphaSrc = One;
 		case AlphaAdd: // Out = Src + (1 - SrcA) * Dst
 			blend(One, OneMinusSrcAlpha);
-			blendOp = Add;
-			blendAlphaOp = Add;
 		case SoftAdd: // Out = (1 - Dst) * Src + 1 * Dst
 			blend(OneMinusDstColor, One);
-			blendOp = Add;
-			blendAlphaOp = Add;
+			blendAlphaSrc = One;
 		case Multiply: // Out = Dst * Src + 0 * Dst
 			blend(DstColor, Zero);
-			blendOp = Add;
-			blendAlphaOp = Add;
+			blendAlphaSrc = One;
 		case AlphaMultiply: // Out = Dst * Src + (1 - SrcA) * Dst
 			blend(DstColor, OneMinusSrcAlpha);
-			blendOp = Add;
-			blendAlphaOp = Add;
 		case Erase: // Out = 0 * Src + (1 - Srb) * Dst
 			blend(Zero, OneMinusSrcColor);
-			blendOp = Add;
-			blendAlphaOp = Add;
 		case Screen: // Out = 1 * Src + (1 - Srb) * Dst
 			blend(One, OneMinusSrcColor);
-			blendOp = Add;
-			blendAlphaOp = Add;
 		case Sub: // Out = 1 * Dst - SrcA * Src
 			blend(SrcAlpha, One);
 			blendOp = ReverseSub;
 			blendAlphaOp = ReverseSub;
-
-		// The output color min/max of the source and dest colors.
-		// The blend parameters Src and Dst are ignored for this equation.
 		case Max: // Out = MAX( Src, Dst )
-			blendSrc = Zero;
-			blendAlphaSrc = Zero;
-			blendDst = Zero;
-			blendAlphaDst = Zero;
-			blendAlphaSrc = Zero;
-			blendAlphaDst = Zero;
+			blend(One, One);
 			blendAlphaOp = Max;
 			blendOp = Max;
 		case Min: // Out = MIN( Src, Dst )
-			blendSrc = Zero;
-			blendAlphaSrc = Zero;
-			blendDst = Zero;
-			blendAlphaDst = Zero;
-			blendAlphaSrc = Zero;
-			blendAlphaDst = Zero;
+			blend(One, One);
 			blendAlphaOp = Min;
 			blendOp = Min;
 		}
@@ -179,10 +159,25 @@ class Pass {
 		}
 	}
 
+	public function setColorMaski(r, g, b, a, i) {
+		if ( i > 8 )
+			throw "Color mask i supports 8 Render target";
+		var mask = (r?1:0) | (g?2:0) | (b?4:0) | (a?8:0);
+		mask = mask << (i * 4);
+		this.colorMask = this.colorMask | mask;
+	}
+
 	public function addShader<T:hxsl.Shader>(s:T) : T {
 		// throwing an exception will require NG GameServer review
 		if( s == null ) return null;
 		shaders = hxsl.ShaderList.addSort(s, shaders);
+		return s;
+	}
+
+	function addSelfShader<T:hxsl.Shader>(s:T) : T {
+		if ( s == null ) return null;
+		selfShadersChanged = true;
+		selfShaders = hxsl.ShaderList.addSort(s, selfShaders);
 		return s;
 	}
 
@@ -228,6 +223,19 @@ class Pass {
 			prev = sl;
 			sl = sl.next;
 		}
+		sl = selfShaders;
+		prev = null;
+		while ( sl != null ) {
+			if ( sl.s == s ) {
+				if ( prev == null )
+					selfShaders = sl.next;
+				else
+					prev.next = sl.next;
+				return true;
+			}
+			prev = sl;
+			sl = sl.next;
+		}
 		return false;
 	}
 
@@ -244,11 +252,28 @@ class Pass {
 				prev = sl;
 			sl = sl.next;
 		}
+		sl = selfShaders;
+		prev = null;
+		while( sl != null ) {
+			if( hxd.impl.Api.isOfType(sl.s, t) ) {
+				if( prev == null )
+					selfShaders = sl.next;
+				else
+					prev.next = sl.next;
+			}
+			else
+				prev = sl;
+			sl = sl.next;
+		}
 	}
 
 	public function getShader< T:hxsl.Shader >(t:Class<T>) : T {
-		var s = shaders;
-		while( s != parentShaders ) {
+		var s = _getShader(t, shaders);
+		return s != null ? s : _getShader(t, selfShaders);
+	}
+
+	function _getShader< T:hxsl.Shader >(t:Class<T>, s : hxsl.ShaderList) : T {
+		while( s != null && s != parentShaders ) {
 			var sh = hxd.impl.Api.downcast(s.s, t);
 			if( sh != null )
 				return sh;
@@ -258,11 +283,15 @@ class Pass {
 	}
 
 	public function getShaderByName( name : String ) : hxsl.Shader {
-		var s = shaders;
-		while( s != parentShaders ) {
-			if( @:privateAccess s.s.shader.data.name == name )
-				return s.s;
-			s = s.next;
+		var s = _getShaderByName(name, shaders);
+		return s != null ? s : _getShaderByName(name, selfShaders);
+	}
+
+	function _getShaderByName( name : String, sl : hxsl.ShaderList ) : hxsl.Shader {
+		while( sl != null && sl != parentShaders ) {
+			if( @:privateAccess sl.s.shader.data.name == name )
+				return sl.s;
+			sl = sl.next;
 		}
 		return null;
 	}
@@ -271,9 +300,28 @@ class Pass {
 		return shaders.iterateTo(parentShaders);
 	}
 
-	function getShadersRec() {
-		if( parentPass == null || parentShaders == parentPass.shaders )
+	function selfShadersRec(rebuild : Bool) {
+		if ( selfShaders == null )
 			return shaders;
+		if ( !selfShadersChanged && !rebuild && shaders == selfShadersCache )
+			return selfShaders;
+		var sl = selfShaders, prev = null;
+		while ( sl != null && sl != selfShadersCache ) {
+			prev = sl;
+			sl = sl.next;
+		}
+		selfShadersCache = shaders;
+		if ( prev != null )
+			prev.next = selfShadersCache;
+		else
+			selfShaders = shaders;
+		return selfShaders;
+	}
+
+	function getShadersRec() {
+		if( parentPass == null || parentShaders == parentPass.shaders ) {
+			return selfShadersRec(false);
+		}
 		// relink to our parent shader list
 		var s = shaders, prev = null;
 		while( s != null && s != parentShaders ) {
@@ -285,11 +333,12 @@ class Pass {
 			shaders = parentShaders;
 		else
 			prev.next = parentShaders;
-		return shaders;
+		return selfShadersRec(true);
 	}
 
 	public function clone() {
 		var p = new Pass(name, shaders.clone());
+		p.selfShaders = selfShaders;
 		p.bits = bits;
 		p.enableLights = enableLights;
 		if (stencil != null) p.stencil = stencil.clone();
