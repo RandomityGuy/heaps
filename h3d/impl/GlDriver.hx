@@ -969,7 +969,7 @@ class GlDriver extends Driver {
 		var format = switch( b.format ) {
 		case Depth16: GL.DEPTH_COMPONENT16;
 		case Depth24 #if js if( glES >= 3 ) #end: GL.DEPTH_COMPONENT24;
-		case Depth24Stencil8: GL.DEPTH_STENCIL;
+		case Depth24Stencil8: GL.DEPTH24_STENCIL8;
 		default:
 			throw "Unsupported depth format "+b.format;
 		}
