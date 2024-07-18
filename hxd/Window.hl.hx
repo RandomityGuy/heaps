@@ -332,6 +332,10 @@ class Window {
 				#if hlsdl
 				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
 				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				if (emx < 0)
+					emx += 2 * 2147.483648;
+				if (emy < 0)
+					emy += 2 * 2147.483648;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
@@ -341,6 +345,10 @@ class Window {
 				#if hlsdl
 				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
 				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				if (emx < 0)
+					emx += 2 * 2147.483648;
+				if (emy < 0)
+					emy += 2 * 2147.483648;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
@@ -350,6 +358,10 @@ class Window {
 				#if hlsdl
 				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
 				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
+				if (emx < 0)
+					emx += 2 * 2147.483648;
+				if (emy < 0)
+					emy += 2 * 2147.483648;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
