@@ -76,17 +76,17 @@ class System {
 		if( loopFunc != null ) loopFunc();
 
 		// present
-		var cur = h3d.Engine.getCurrent();
-		if( cur != null && cur.ready ) {
-			#if hl_profile
-			hl.Profile.event(-1); // pause
-			#end
-			cur.driver.present();
-			#if hl_profile
-			hl.Profile.event(0); // next frame
-			hl.Profile.event(-2); // resume
-			#end
-		}
+		// var cur = h3d.Engine.getCurrent();
+		// if( cur != null && cur.ready ) {
+		// 	#if hl_profile
+		// 	hl.Profile.event(-1); // pause
+		// 	#end
+		// 	cur.driver.present();
+		// 	#if hl_profile
+		// 	hl.Profile.event(0); // next frame
+		// 	hl.Profile.event(-2); // resume
+		// 	#end
+		// }
 		return true;
 	}
 
