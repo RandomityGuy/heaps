@@ -330,12 +330,8 @@ class Window {
 				eh.inputChar = e.inputChar != null ? @:privateAccess String.fromUCS2(e.inputChar) : "";
 			case TouchDown if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
-				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
-				if (emx < 0)
-					emx += 2 * 2147.483648;
-				if (emy < 0)
-					emy += 2 * 2147.483648;
+				var emx = windowWidth * e.touchX;
+				var emy = windowHeight * e.touchY;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
@@ -343,12 +339,8 @@ class Window {
 				eh.touchId = e.fingerId;
 			case TouchMove if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
-				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
-				if (emx < 0)
-					emx += 2 * 2147.483648;
-				if (emy < 0)
-					emy += 2 * 2147.483648;
+				var emx = windowWidth * e.touchX;
+				var emy = windowHeight * e.touchY;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
@@ -356,12 +348,8 @@ class Window {
 				eh.touchId = e.fingerId;
 			case TouchUp if (hxd.System.getValue(IsTouch)):
 				#if hlsdl
-				var emx = windowWidth * e.mouseX / TOUCH_SCALE;
-				var emy = windowHeight * e.mouseY / TOUCH_SCALE;
-				if (emx < 0)
-					emx += 2 * 2147.483648;
-				if (emy < 0)
-					emy += 2 * 2147.483648;
+				var emx = windowWidth * e.touchX;
+				var emy = windowHeight * e.touchY;
 				e.mouseX = Std.int(emx);
 				e.mouseY = Std.int(emy);
 				#end
