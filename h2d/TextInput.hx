@@ -210,7 +210,7 @@ class TextInput extends Text {
 				}
 			case K.ESCAPE, K.ENTER, K.NUMPAD_ENTER:
 				cursorIndex = -1;
-				#if android
+				#if (android || uwp)
 				textInput(false);
 				#end
 				interactive.blur();
@@ -498,8 +498,10 @@ class TextInput extends Text {
 	**/
 	public function focus() {
 		var ib = interactive.getBounds();
-		#if android
+		#if (android || uwp)
 		textInput(true);
+		#end
+		#if android
 		textInputRect(Std.int(ib.x), Std.int(ib.y), Std.int(ib.width), Std.int(ib.height));
 		#end
 		interactive.focus();
@@ -593,10 +595,12 @@ class TextInput extends Text {
 	function set_backgroundColor(v)
 		return interactive.backgroundColor = v;
 
-	#if android
+	#if (android || uwp)
 	@:hlNative("sdl", "text_input")
 	public static function textInput(enable:Bool):Void {}
+	#end
 
+	#if android
 	@:hlNative("sdl", "text_input_rect")
 	public static function textInputRect(x:Int, y:Int, w:Int, h:Int):Void {}
 	#end
