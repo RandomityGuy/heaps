@@ -69,7 +69,7 @@ class Convert {
 
 }
 
-#if (sys || nodejs)
+#if ((sys || nodejs) && !uwp)
 
 class ConvertFBX2HMD extends Convert {
 

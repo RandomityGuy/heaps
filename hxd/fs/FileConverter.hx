@@ -267,8 +267,10 @@ class FileConverter {
 		}
 		function saveCache() {
 			if( needInsert ) cache.set(e.file, entry);
+#if !uwp
 			sys.FileSystem.createDirectory(baseDir + tmpDir);
 			sys.io.File.saveContent(baseDir + tmpDir + "cache.dat", haxe.Serializer.run(cache));
+#end
 			cacheTime = Date.now().getTime();
 		}
 
