@@ -65,12 +65,19 @@ class FileConverter {
 		this.configuration = configuration;
 		tmpDir = ".tmp/";
 		// this is the default converts config, it can be override in per-directory props.json
+		#if uwp
+		var defaultCfg:Dynamic = {
+			"fs.convert": {
+			}
+		};
+		#else
 		var defaultCfg : Dynamic = {
 			"fs.convert" : {
 				"fbx" : { "convert" : "hmd", "priority" : -1 },
 				"fnt" : { "convert" : "bfnt", "priority" : -1 }
 			}
 		};
+		#end
 		for ( conf in extraConfigs ) {
 			defaultCfg = mergeRec(defaultCfg, conf);
 		}
