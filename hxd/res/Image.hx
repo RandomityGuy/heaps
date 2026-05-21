@@ -19,6 +19,8 @@ enum abstract ImageFormat(Int) {
 	inline function get_useLoadBitmap() {
 		#if hl
 		return false;
+		#elseif js
+		return this == Jpg.toInt() || this == Png.toInt() || this == Gif.toInt();
 		#else
 		return this == Jpg.toInt();
 		#end
