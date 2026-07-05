@@ -1082,9 +1082,22 @@ class GlDriver extends Driver {
 			uploadTexturePixels(t, pixels, mipLevel, side);
 			pixels.dispose();
 		} else {
-			var img = bmp.toNative();
 			gl.bindTexture(GL.TEXTURE_2D, t.t.t);
-			gl.texImage2D(GL.TEXTURE_2D, mipLevel, t.t.internalFmt, getChannels(t.t), t.t.pixelFmt, img.getImageData(0, 0, bmp.width, bmp.height));
+			var srcImg = bmp.jsImage;
+			if( srcImg != null ) {
+				// Upload the decoded <img> straight to the texture. Going through a 2D
+				// canvas (getImageData) round-trips the pixels via a premultiplied
+				// backing store; un-premultiplying alpha=0 pixels is a divide-by-zero
+				// that some browsers resolve to white RGB, which then shows up on
+				// opaque meshes. The direct element upload keeps straight alpha.
+				if( glES >= 3 )
+					gl.texImage2D(GL.TEXTURE_2D, mipLevel, t.t.internalFmt, srcImg.width, srcImg.height, 0, getChannels(t.t), t.t.pixelFmt, untyped srcImg);
+				else
+					gl.texImage2D(GL.TEXTURE_2D, mipLevel, t.t.internalFmt, getChannels(t.t), t.t.pixelFmt, srcImg);
+			} else {
+				var img = bmp.toNative();
+				gl.texImage2D(GL.TEXTURE_2D, mipLevel, t.t.internalFmt, getChannels(t.t), t.t.pixelFmt, img.getImageData(0, 0, bmp.width, bmp.height));
+			}
 			restoreBind();
 		}
 	#end

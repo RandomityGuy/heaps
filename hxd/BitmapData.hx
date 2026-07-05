@@ -35,6 +35,12 @@ class BitmapData {
 	var ctx : js.html.CanvasRenderingContext2D;
 	var lockImage : js.html.ImageData;
 	var pixel : js.html.ImageData;
+	// When this BitmapData was created directly from a decoded <img> (see
+	// hxd.fs.LoadedBitmap.toBitmap), we keep a reference to the source element so
+	// the GL driver can upload it directly instead of going through the
+	// premultiplied 2D-canvas + getImageData round-trip, which corrupts the RGB
+	// of fully-transparent pixels. Any pixel mutation clears it (see below).
+	public var jsImage : js.html.Image;
 #else
 	var data : BitmapInnerData;
 #end
@@ -88,6 +94,7 @@ class BitmapData {
 		r.height = height;
 		bmp.fillRect(r, color);
 		#elseif js
+		jsImage = null;
 		ctx.fillStyle = 'rgba(${(color>>16)&0xFF}, ${(color>>8)&0xFF}, ${color&0xFF}, ${(color>>>24)/255})';
 		ctx.fillRect(x, y, width, height);
 		#else
@@ -523,6 +530,7 @@ class BitmapData {
 		bmp.unlock();
 		#elseif js
 		if( lockImage != null ) {
+			jsImage = null;
 			ctx.putImageData(lockImage, 0, 0);
 			lockImage = null;
 		}
@@ -557,6 +565,7 @@ class BitmapData {
 		#if flash
 		bmp.setPixel32(x, y, c);
 		#elseif js
+		jsImage = null;
 		var i : js.html.ImageData = lockImage;
 		if( i != null ) {
 			var a = (x + y * i.width) << 2;
@@ -638,6 +647,7 @@ class BitmapData {
 		}
 		bmp.setPixels(bmp.rect, bytes);
 		#elseif js
+		jsImage = null;
 		var img = ctx.createImageData(pixels.width, pixels.height);
 		pixels.convert(RGBA);
 		for( i in 0...pixels.width*pixels.height*4 ) img.data[i] = pixels.bytes.get(i);
