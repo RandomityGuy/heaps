@@ -4,19 +4,19 @@ using hxd.Math;
 @:noDebug
 class Quat {
 
-	public var x : Float;
-	public var y : Float;
-	public var z : Float;
-	public var w : Float;
+	public var x : Float = 0;
+	public var y : Float = 0;
+	public var z : Float = 0;
+	public var w : Float = 1;
 
-	public inline function new( x = 0., y = 0., z = 0., w = 1. ) {
+	public inline function new( x: Float = 0., y: Float = 0., z: Float = 0., w: Float = 1. ) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.w = w;
 	}
 
-	public inline function set(x, y, z, w) {
+	public inline function set(x: Float, y: Float, z: Float, w: Float) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
