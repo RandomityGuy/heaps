@@ -150,7 +150,8 @@ class Image extends Resource {
 			inf.height = f.readInt32();
 			inf.width = f.readInt32();
 			f.skip(2*4);
-			inf.mipLevels = f.readInt32();
+			// Fix mip levels
+			inf.mipLevels = hxd.Math.imax(1, f.readInt32());
 			f.skip(12*4);
 			var caps = f.readInt32();
 			var fourCC = f.readInt32();
@@ -222,6 +223,10 @@ class Image extends Resource {
 						inf.pixelFormat = BGRA;
 					case [32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000]:
 						inf.pixelFormat = RGBA;
+					case [16, 0xFFFF, 0, 0, 0]:
+						inf.pixelFormat = R16U;
+					case [24, 0xFF0000, 0xFF00, 0xFF, 0]:
+						inf.pixelFormat = BGR8;
 					default:
 						throw "Unsupported RGB DDS "+bpp+"bits "+StringTools.hex(rMask)+"/"+StringTools.hex(gMask)+"/"+StringTools.hex(bMask)+"/"+StringTools.hex(aMask);
 					}
@@ -414,6 +419,37 @@ class Image extends Resource {
 
 	#if hl
 
+	/**
+		need to strip png color chunks since PQ does not make use of them
+	**/
+	static function stripPngColorChunks( src : haxe.io.Bytes ) : haxe.io.Bytes {
+		if( src.length < 8 || src.get(0) != 0x89 || src.get(1) != 0x50 )
+			return src;
+		var stripTypes = ["gAMA", "cHRM", "sRGB", "iCCP"];
+		var out = new haxe.io.BytesBuffer();
+		out.addBytes(src, 0, 8);
+		var pos = 8;
+		var found = false;
+		while( pos + 8 <= src.length ) {
+			var len = (src.get(pos) << 24) | (src.get(pos+1) << 16) | (src.get(pos+2) << 8) | src.get(pos+3);
+			var type = src.getString(pos + 4, 4);
+			var chunkTotal = 8 + len + 4;
+			if( pos + chunkTotal > src.length ) {
+				// malformed/truncated - bail out and keep whatever's left untouched
+				out.addBytes(src, pos, src.length - pos);
+				break;
+			}
+			if( stripTypes.indexOf(type) >= 0 )
+				found = true;
+			else
+				out.addBytes(src, pos, chunkTotal);
+			pos += chunkTotal;
+			if( type == "IEND" )
+				break;
+		}
+		return found ? out.getBytes() : src;
+	}
+
 	static function decodeJPG( src : haxe.io.Bytes, width : Int, height : Int, requestedFmt : hxd.PixelFormat, flipY : Bool ) {
 		var outFmt = requestedFmt;
 		var ifmt : hl.Format.PixelFormat = switch( requestedFmt ) {
@@ -433,6 +469,7 @@ class Image extends Resource {
 	}
 
 	static function decodePNG( src : haxe.io.Bytes, width : Int, height : Int, requestedFmt : hxd.PixelFormat, flipY : Bool ) {
+		src = stripPngColorChunks(src);
 		var outFmt = requestedFmt;
 		var ifmt : hl.Format.PixelFormat = switch( requestedFmt ) {
 		case RGBA: RGBA;
@@ -609,8 +646,32 @@ class Image extends Resource {
 			flags.push(MipMapped);
 			flags.push(ManualMipMapGen);
 		}
-		if( fmt == R16U )
-			throw "Unsupported texture format "+fmt+" for "+entry.path;
+		if( fmt == R16U ) {
+			// have to convert to bitmap
+			var bmpData = toBitmap();
+			#if hl
+			var tex = new h3d.mat.Texture(inf.width, inf.height, flags, BGRA);
+			#else
+			var tex = new h3d.mat.Texture(inf.width, inf.height, flags, RGBA);
+			#end
+			if (DEFAULT_FILTER != Linear)
+				tex.filter = DEFAULT_FILTER;
+			tex.setName(entry.path);
+
+			for (layer in 0...tex.layerCount) {
+				for (mip in 0...inf.mipLevels) {
+					#if hl
+					var pixels = getPixels(BGRA, null, layer * inf.mipLevels + mip);
+					#else
+					var pixels = getPixels(RGBA, null, layer * inf.mipLevels + mip);
+					#end
+					tex.uploadPixels(pixels, mip, layer);
+					pixels.dispose();
+				}
+			}
+			setupTextureFlags(tex);
+			return tex;
+		}
 		if( inf.layerCount > 1 )
 			tex = new h3d.mat.TextureArray(inf.width, inf.height, inf.layerCount, flags, fmt);
 		else

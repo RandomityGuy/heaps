@@ -291,6 +291,45 @@ class Pixels {
 		return this;
 	}
 
+	public function resize( width : Int, height : Int ) {
+		if( width == this.width && height == this.height )
+			return this;
+		if( width <= 0 || height <= 0 )
+			throw "Pixels.resize() invalid size";
+		switch( format ) {
+		case S3TC(_): throw "Cannot resize a compressed format, convert to an uncompressed format first";
+		default:
+		}
+		willChange();
+		var bpp = bytesPerPixel;
+		var srcW = this.width, srcH = this.height;
+		var srcStride = stride;
+		var dstStride = calcStride(width, format);
+		var out = haxe.io.Bytes.alloc(calcDataSize(width, height, format));
+		var xRatio = srcW / width;
+		var yRatio = srcH / height;
+		var outP = 0;
+		for( y in 0...height ) {
+			var sy = Std.int(y * yRatio);
+			if( sy >= srcH ) sy = srcH - 1;
+			var rowOffset = offset + yflip(sy) * srcStride;
+			var p = outP;
+			for( x in 0...width ) {
+				var sx = Std.int(x * xRatio);
+				if( sx >= srcW ) sx = srcW - 1;
+				out.blit(p, bytes, rowOffset + sx * bpp, bpp);
+				p += bpp;
+			}
+			outP += dstStride;
+		}
+		bytes = out;
+		this.width = width;
+		this.height = height;
+		offset = 0;
+		innerFormat = format;
+		return this;
+	}
+
 	function copyInner() {
 		var old = bytes;
 		bytes = haxe.io.Bytes.alloc(dataSize);
@@ -377,6 +416,28 @@ class Pixels {
 				out[i] = bytes[i << 2];
 			this.bytes = nbytes;
 
+		case [RGB8, RGBA]:
+			var nbytes = haxe.io.Bytes.alloc(4 * width * height);
+			var i = this.offset;
+			var idx = 0;
+			while (i < 3 * width * height + this.offset) {
+				nbytes.set(idx++, bytes[i + 2]);
+				nbytes.set(idx++, bytes[i + 1]);
+				nbytes.set(idx++, bytes[i]);
+				nbytes.set(idx++, 0xFF);
+				i += 3;
+			}
+			this.bytes = nbytes;
+
+		case [RGB8, BGR8], [BGR8 ,RGB8]:
+			var i = this.offset;
+			while (i < 3 * width * height + this.offset) {
+				var b = bytes[i];
+				bytes[i] = bytes[i+2];
+				bytes[i+2] = b;
+				i += 3;
+			}
+
 		case [R32F, RGBA|BGRA]:
 			var fbytes = this.bytes;
 			var p = 0;
@@ -395,6 +456,26 @@ class Pixels {
 			for( i in 0...width*height ) {
 				var nv = fbytes.getUInt16(i << 1);
 				nbytes.setFloat(i << 2, nv / 65535.0);
+			}
+			this.bytes = nbytes;
+
+		case [R16U, RGBA | BGRA]:
+			var nbytes = haxe.io.Bytes.alloc(width * height * 4);
+			var fbytes = this.bytes;
+			var p = 0;
+			for (i in 0...width * height) {
+				var nv = fbytes.getUInt16(i << 1);
+
+				var v = Std.int((nv / 65535.0) * 255);
+				if (v < 0)
+					v = 0
+				else if (v > 255)
+					v = 255;
+
+				nbytes.set(p++, v);
+				nbytes.set(p++, v);
+				nbytes.set(p++, v);
+				nbytes.set(p++, 0xFF);
 			}
 			this.bytes = nbytes;
 
@@ -430,6 +511,7 @@ class Pixels {
 			convert(target);
 			return;
 		#end
+		
 
 		default:
 			throw "Cannot convert from " + format + " to " + target;
@@ -577,7 +659,7 @@ class Pixels {
 		case RG8: 2;
 		case RG16F: 4;
 		case RG32F: 8;
-		case RGB8: 3;
+		case RGB8, BGR8: 3;
 		case RGB16U, RGB16F: 6;
 		case RGB32F: 12;
 		case RGB10A2: 4;
@@ -613,6 +695,8 @@ class Pixels {
 		case RGB8, RGB16F, RGB32F, RGB16U:
 			var p = calcStride(1,format);
 			[0, p, p<<1, -1][channel.toInt()];
+		case BGR8:
+			[2, 1, 0, -1][channel.toInt()];
 		case ARGB:
 			[1, 2, 3, 0][channel.toInt()];
 		case BGRA:

@@ -894,8 +894,6 @@ class GlDriver extends Driver {
 			tt.internalFmt = GL.R11F_G11F_B10F;
 			tt.pixelFmt = GL.UNSIGNED_INT_10F_11F_11F_REV;
 		case S3TC(n) if( n <= maxCompressedTexturesSupport ):
-			if( t.width&3 != 0 || t.height&3 != 0 )
-				throw "Compressed texture "+t+" has size "+t.width+"x"+t.height+" - must be a multiple of 4";
 			switch( n ) {
 			case 1: tt.internalFmt = 0x83F1; // COMPRESSED_RGBA_S3TC_DXT1_EXT
 			case 2:	tt.internalFmt = 0x83F2; // COMPRESSED_RGBA_S3TC_DXT3_EXT
@@ -1169,15 +1167,18 @@ class GlDriver extends Driver {
 		pixels.convert(t.format);
 		pixels.setFlip(false);
 		var dataLen = pixels.dataSize;
+		// S3TC needs this
+		var uw = (pixels.width + 3) & ~3;
+		var uh = (pixels.height + 3) & ~3;
 		#if hl
 		var stream = streamData(pixels.bytes.getData(),pixels.offset,dataLen);
 		if( t.format.match(S3TC(_)) ) {
 			if( t.flags.has(IsArray) )
 				#if (hlsdl >= version("1.12.0"))
-				gl.compressedTexSubImage3D(face, mipLevel, 0, 0, side, pixels.width, pixels.height, 1, t.t.internalFmt, dataLen, stream);
+				gl.compressedTexSubImage3D(face, mipLevel, 0, 0, side, uw, uh, 1, t.t.internalFmt, dataLen, stream);
 				#else throw "TextureArray support requires hlsdl 1.12+"; #end
 			else
-				gl.compressedTexImage2D(face, mipLevel, t.t.internalFmt, pixels.width, pixels.height, 0, dataLen, stream);
+				gl.compressedTexImage2D(face, mipLevel, t.t.internalFmt, uw, uh, 0, dataLen, stream);
 		} else {
 			if( t.flags.has(IsArray) )
 				#if (hlsdl >= version("1.12.0"))
@@ -1203,9 +1204,9 @@ class GlDriver extends Driver {
 		}
 		if( t.format.match(S3TC(_)) ) {
 			if( t.flags.has(IsArray) )
-				gl.compressedTexSubImage3D(face, mipLevel, 0, 0, side, pixels.width, pixels.height, 1, t.t.internalFmt, buffer);
+				gl.compressedTexSubImage3D(face, mipLevel, 0, 0, side, uw, uh, 1, t.t.internalFmt, buffer);
 			else
-				gl.compressedTexImage2D(face, mipLevel, t.t.internalFmt, pixels.width, pixels.height, 0, buffer);
+				gl.compressedTexImage2D(face, mipLevel, t.t.internalFmt, uw, uh, 0, buffer);
 		} else {
 			if( t.flags.has(IsArray) )
 				gl.texSubImage3D(face, mipLevel, 0, 0, side, pixels.width, pixels.height, 1, getChannels(t.t), t.t.pixelFmt, buffer);

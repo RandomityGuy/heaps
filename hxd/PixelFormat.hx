@@ -13,6 +13,7 @@ enum PixelFormat {
 	RG16F;
 	RG32F;
 	RGB8;
+	BGR8;
 	RGB16F;
 	RGB32F;
 	SRGB;
