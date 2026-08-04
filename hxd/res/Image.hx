@@ -672,6 +672,9 @@ class Image extends Resource {
 			setupTextureFlags(tex);
 			return tex;
 		}
+		var engine = h3d.Engine.getCurrent();
+		if (!engine.driver.isSupportedFormat(fmt))
+			fmt = #if hl BGRA #else RGBA #end;
 		if( inf.layerCount > 1 )
 			tex = new h3d.mat.TextureArray(inf.width, inf.height, inf.layerCount, flags, fmt);
 		else

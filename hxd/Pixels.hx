@@ -502,8 +502,9 @@ class Pixels {
 			return;
 		#else
 		case [S3TC(ver), _]:
-			if( (width|height)&3 != 0 ) throw "Texture size should be 4x4 multiple";
-			var out = haxe.io.Bytes.alloc(width * height * 4);
+			var uw = (width + 3) & ~3;
+			var uh = (height + 3) & ~3;
+			var out = haxe.io.Bytes.alloc(uw * uh * 4);
 			decodeDXT(this.bytes.sub(offset, this.bytes.length - offset), out, width, height, ver);
 			offset = 0;
 			this.bytes = out;
