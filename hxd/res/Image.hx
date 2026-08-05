@@ -673,8 +673,13 @@ class Image extends Resource {
 			return tex;
 		}
 		var engine = h3d.Engine.getCurrent();
-		if (!engine.driver.isSupportedFormat(fmt))
+		if (!engine.driver.isSupportedFormat(fmt)) {
+			#if (android || ios)
+			fmt = RGBA;
+			#else
 			fmt = #if hl BGRA #else RGBA #end;
+			#end
+		}
 		if( inf.layerCount > 1 )
 			tex = new h3d.mat.TextureArray(inf.width, inf.height, inf.layerCount, flags, fmt);
 		else

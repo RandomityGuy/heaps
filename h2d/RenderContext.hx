@@ -519,8 +519,11 @@ class RenderContext extends h3d.impl.RenderContext {
 		renderY = y;
 		renderW = w;
 		renderH = h;
-		var scaleX = (scene.viewportA * engine.width / 2) / Window.getInstance().windowToPixelRatio;
-		var scaleY = (scene.viewportD * engine.height / 2) / Window.getInstance().windowToPixelRatio;
+		var pixelRatio = Window.getInstance().windowToPixelRatio;
+		var bufWidth = engine.width / pixelRatio;
+		var bufHeight = engine.height / pixelRatio;
+		var scaleX = scene.viewportA * bufWidth / 2;
+		var scaleY = scene.viewportD * bufHeight / 2;
 		if( inFilter != null ) {
 			var fa = baseShader.filterMatrixA;
 			var fb = baseShader.filterMatrixB;
@@ -535,11 +538,15 @@ class RenderContext extends h3d.impl.RenderContext {
 			h = ry2 - ry1;
 		}
 
+		var rzX = Std.int(x * scaleX + (scene.viewportX+1) * (bufWidth / 2) + 1e-10);
+		var rzY = Std.int(y * scaleY + (scene.viewportY+1) * (bufHeight / 2) + 1e-10);
+		var rzW = Std.int(w * scaleX + 1e-10);
+		var rzH = Std.int(h * scaleY + 1e-10);
 		engine.setRenderZone(
-			Std.int(x * scaleX + (scene.viewportX+1) * (engine.width / 2) + 1e-10),
-			Std.int(y * scaleY + (scene.viewportY+1) * (engine.height / 2) + 1e-10),
-			Std.int(w * scaleX + 1e-10),
-			Std.int(h * scaleY + 1e-10)
+			rzX,
+			rzY,
+			rzW,
+			rzH
 		);
 	}
 

@@ -491,8 +491,9 @@ class Pixels {
 
 		#if (hl && hl_ver >= "1.10")
 		case [S3TC(ver),_]:
-			if( (width|height)&3 != 0 ) throw "Texture size should be 4x4 multiple";
-			var out = haxe.io.Bytes.alloc(width * height * 4);
+			var uw = (width + 3) & ~3;
+			var uh = (height + 3) & ~3;
+			var out = haxe.io.Bytes.alloc(uw * uh * 4);
 			if( !hl.Format.decodeDXT((this.bytes:hl.Bytes).offset(this.offset), out, width, height, ver) )
 				throw "Failed to decode DDS";
 			offset = 0;
